@@ -20,6 +20,8 @@
   <div>
     <label>摘要（Summary）</label>
     <input id="summary" placeholder="与待办/事件一致的摘要">
+    <label style="margin-left:12px">Radicale 配置ID（可选）</label>
+    <input id="radicateId" type="number" placeholder="不填则使用默认配置">
     <button class="btn" id="btnDelete">按摘要删除事件</button>
   </div>
 
@@ -28,7 +30,9 @@
     document.querySelector('#btnDelete').onclick=()=>{
       const s=document.querySelector('#summary').value.trim();
       if(!s){alert('请输入摘要');return;}
-      fetch(api+`/deleteBySummary?summary=${encodeURIComponent(s)}`,{method:'POST'})
+      const rid=document.querySelector('#radicateId').value.trim();
+      const qs = rid ? `summary=${encodeURIComponent(s)}&radicateConfigId=${encodeURIComponent(rid)}` : `summary=${encodeURIComponent(s)}`;
+      fetch(api+`/deleteBySummary?${qs}`,{method:'POST'})
         .then(r=>r.json()).then(x=>{
           alert(`操作: ${x.opType}\n摘要: ${x.summary}\n状态: ${x.status}\n消息: ${x.message||''}`);
         });

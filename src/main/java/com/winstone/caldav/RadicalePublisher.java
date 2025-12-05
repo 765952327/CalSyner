@@ -22,13 +22,13 @@ public class RadicalePublisher {
         return base;
     }
 
-    private List<String> listCollectionIcs() {
-        String base = ensureBase(CalDavConfig.RADICALE_URL);
+    private List<String> listCollectionIcs(String baseUrl, String username, String password) {
+        String base = ensureBase(baseUrl);
         OkHttpClient client = new OkHttpClient();
         RequestBody body = RequestBody.create(MediaType.parse("text/xml"), "<propfind xmlns=\"DAV:\"><allprop/></propfind>");
         Request req = new Request.Builder()
                 .url(base)
-                .header("Authorization", Credentials.basic(CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD))
+                .header("Authorization", Credentials.basic(username, password))
                 .header("Depth", "1")
                 .method("PROPFIND", body)
                 .build();
@@ -51,13 +51,17 @@ public class RadicalePublisher {
     }
 
     public List<String> listSummaries() {
-        List<String> urls = listCollectionIcs();
+        return listSummaries(CalDavConfig.RADICALE_URL, CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD);
+    }
+
+    public List<String> listSummaries(String baseUrl, String username, String password) {
+        List<String> urls = listCollectionIcs(baseUrl, username, password);
         OkHttpClient client = new OkHttpClient();
         Set<String> summaries = new HashSet<>();
         for (String url : urls) {
             Request get = new Request.Builder()
                     .url(url)
-                    .header("Authorization", Credentials.basic(CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD))
+                    .header("Authorization", Credentials.basic(username, password))
                     .get().build();
             try (Response resp = client.newCall(get).execute()) {
                 if (!resp.isSuccessful()) continue;
@@ -80,13 +84,13 @@ public class RadicalePublisher {
         return new ArrayList<>(summaries);
     }
 
-    private String findIcsUrlBySummary(String summary, boolean todo) {
-        List<String> urls = listCollectionIcs();
+    private String findIcsUrlBySummary(String summary, boolean todo, String baseUrl, String username, String password) {
+        List<String> urls = listCollectionIcs(baseUrl, username, password);
         OkHttpClient client = new OkHttpClient();
         for (String url : urls) {
             Request get = new Request.Builder()
                     .url(url)
-                    .header("Authorization", Credentials.basic(CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD))
+                    .header("Authorization", Credentials.basic(username, password))
                     .get().build();
             try (Response resp = client.newCall(get).execute()) {
                 if (!resp.isSuccessful()) continue;
@@ -113,14 +117,18 @@ public class RadicalePublisher {
     }
 
     public int deleteBySummary(String summary) {
+        return deleteBySummary(summary, CalDavConfig.RADICALE_URL, CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD);
+    }
+
+    public int deleteBySummary(String summary, String baseUrl, String username, String password) {
         int code = 404;
-        String evUrl = findIcsUrlBySummary(summary, false);
-        String tdUrl = findIcsUrlBySummary(summary, true);
+        String evUrl = findIcsUrlBySummary(summary, false, baseUrl, username, password);
+        String tdUrl = findIcsUrlBySummary(summary, true, baseUrl, username, password);
         OkHttpClient client = new OkHttpClient();
         try {
             if (evUrl != null) {
                 Request del = new Request.Builder().url(evUrl)
-                        .header("Authorization", Credentials.basic(CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD))
+                        .header("Authorization", Credentials.basic(username, password))
                         .delete().build();
                 try (Response resp = client.newCall(del).execute()) {
                     code = resp.code();
@@ -128,7 +136,7 @@ public class RadicalePublisher {
             }
             if (tdUrl != null) {
                 Request del = new Request.Builder().url(tdUrl)
-                        .header("Authorization", Credentials.basic(CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD))
+                        .header("Authorization", Credentials.basic(username, password))
                         .delete().build();
                 try (Response resp = client.newCall(del).execute()) {
                     code = Math.max(code, resp.code());
@@ -139,14 +147,18 @@ public class RadicalePublisher {
     }
 
     public int replaceBySummary(String ics, String uid, String summary) {
-        String url = findIcsUrlBySummary(summary, false);
+        return replaceBySummary(ics, uid, summary, CalDavConfig.RADICALE_URL, CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD);
+    }
+
+    public int replaceBySummary(String ics, String uid, String summary, String baseUrl, String username, String password) {
+        String url = findIcsUrlBySummary(summary, false, baseUrl, username, password);
         if (url == null) {
-            String base = ensureBase(CalDavConfig.RADICALE_URL);
+            String base = ensureBase(baseUrl);
             url = base + uid + ".ics";
         }
         OkHttpClient client = new OkHttpClient();
         Request put = new Request.Builder().url(url)
-                .header("Authorization", Credentials.basic(CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD))
+                .header("Authorization", Credentials.basic(username, password))
                 .put(RequestBody.create(MediaType.parse("text/calendar"), ics)).build();
         try (Response resp = client.newCall(put).execute()) {
             return resp.code();
@@ -156,14 +168,18 @@ public class RadicalePublisher {
     }
 
     public int replaceTodoBySummary(String ics, String uid, String summary) {
-        String url = findIcsUrlBySummary(summary, true);
+        return replaceTodoBySummary(ics, uid, summary, CalDavConfig.RADICALE_URL, CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD);
+    }
+
+    public int replaceTodoBySummary(String ics, String uid, String summary, String baseUrl, String username, String password) {
+        String url = findIcsUrlBySummary(summary, true, baseUrl, username, password);
         if (url == null) {
-            String base = ensureBase(CalDavConfig.RADICALE_URL);
+            String base = ensureBase(baseUrl);
             url = base + uid + ".ics";
         }
         OkHttpClient client = new OkHttpClient();
         Request put = new Request.Builder().url(url)
-                .header("Authorization", Credentials.basic(CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD))
+                .header("Authorization", Credentials.basic(username, password))
                 .put(RequestBody.create(MediaType.parse("text/calendar"), ics)).build();
         try (Response resp = client.newCall(put).execute()) {
             return resp.code();
@@ -173,12 +189,16 @@ public class RadicalePublisher {
     }
 
     public int deleteEventsBySummary(String summary) {
+        return deleteEventsBySummary(summary, CalDavConfig.RADICALE_URL, CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD);
+    }
+
+    public int deleteEventsBySummary(String summary, String baseUrl, String username, String password) {
         int code = 404;
-        String evUrl = findIcsUrlBySummary(summary, false);
+        String evUrl = findIcsUrlBySummary(summary, false, baseUrl, username, password);
         OkHttpClient client = new OkHttpClient();
         if (evUrl == null) return code;
         Request del = new Request.Builder().url(evUrl)
-                .header("Authorization", Credentials.basic(CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD))
+                .header("Authorization", Credentials.basic(username, password))
                 .delete().build();
         try (Response resp = client.newCall(del).execute()) {
             return resp.code();

@@ -42,9 +42,14 @@ public class OperationLogController {
     }
 
     @PostMapping("/deleteBySummary")
-    public ResponseEntity<OperationLog> deleteBySummary(@RequestParam String summary) {
-        boolean exists = radicate.eventSummaryExists(summary);
-        boolean ok = exists && radicate.deleteEventsBySummary(summary);
+    public ResponseEntity<OperationLog> deleteBySummary(@RequestParam String summary,
+                                                        @RequestParam(required = false) Long radicateConfigId) {
+        boolean exists = (radicateConfigId == null)
+                ? radicate.eventSummaryExists(summary)
+                : radicate.eventSummaryExists(summary, radicateConfigId);
+        boolean ok = exists && ((radicateConfigId == null)
+                ? radicate.deleteEventsBySummary(summary)
+                : radicate.deleteEventsBySummary(summary, radicateConfigId));
         OperationLog log = repo.findAll().stream()
                 .filter(x -> "DELETE_EVENT".equals(x.getOpType()) && summary.equals(x.getSummary()))
                 .reduce((first, second) -> second)

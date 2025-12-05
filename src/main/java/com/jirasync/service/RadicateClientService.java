@@ -17,6 +17,8 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import com.jirasync.domain.OperationLog;
 import com.jirasync.repository.OperationLogRepository;
+import com.jirasync.domain.ServiceConfig;
+import com.jirasync.repository.ServiceConfigRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -29,6 +31,7 @@ public class RadicateClientService {
     private final BiweeklyFormatter formatter = new BiweeklyFormatter();
     private final RadicalePublisher publisher = new RadicalePublisher();
     private final OperationLogRepository logs;
+    private final ServiceConfigRepository serviceConfigs;
 
     public void upsertEvents(List<EventSpec> specs) {
         Set<String> desired = new HashSet<>();
@@ -46,7 +49,15 @@ public class RadicateClientService {
         }
     }
 
-    public RadicateClientService(OperationLogRepository logs) { this.logs = logs; }
+    public RadicateClientService(OperationLogRepository logs, ServiceConfigRepository serviceConfigs) {
+        this.logs = logs;
+        this.serviceConfigs = serviceConfigs;
+    }
+
+    private ServiceConfig getConfig(Long id, String expectType) {
+        if (id == null) return null;
+        return serviceConfigs.findById(id).filter(c -> expectType.equalsIgnoreCase(c.getServiceType())).orElse(null);
+    }
 
     public List<RadicateSyncResult> upsertAndCollect(List<EventSpec> specs, Long recordId, Long taskId) {
         List<RadicateSyncResult> out = new ArrayList<>();
@@ -116,6 +127,78 @@ public class RadicateClientService {
         return out;
     }
 
+    public List<RadicateSyncResult> upsertAndCollect(List<EventSpec> specs, Long recordId, Long taskId, Long radicateConfigId) {
+        ServiceConfig cfg = getConfig(radicateConfigId, "RADICATE");
+        String base = cfg != null ? cfg.getBaseUrl() : CalDavConfig.RADICALE_URL;
+        String user = cfg != null ? cfg.getUsername() : CalDavConfig.RADICALE_USERNAME;
+        String pass = cfg != null ? cfg.getPassword() : CalDavConfig.RADICALE_PASSWORD;
+        List<RadicateSyncResult> out = new ArrayList<>();
+        Set<String> desired = new HashSet<>();
+        for (EventSpec s : specs) desired.add(s.summary);
+        List<String> existing = publisher.listSummaries(base, user, pass);
+        for (String ex : existing) {
+            if (!desired.contains(ex)) publisher.deleteBySummary(ex, base, user, pass);
+        }
+        for (EventSpec spec : specs) {
+            String uid = java.util.UUID.randomUUID().toString();
+            String ics = formatter.format(spec, uid);
+            String prevEventIcs = getEventIcsBySummaryWithCred(spec.summary, base, user, pass);
+            boolean existedEvent = prevEventIcs != null;
+            boolean changedEvent = !existedEvent || !normalize(prevEventIcs).equals(normalize(ics));
+            if (changedEvent) {
+                int code = publisher.replaceBySummary(ics, uid, spec.summary, base, user, pass);
+                RadicateSyncResult ev = new RadicateSyncResult();
+                ev.setSummary(spec.summary);
+                ev.setUid(uid);
+                ev.setCode(code);
+                ev.setPayload(ics);
+                ev.setTargetType("EVENT");
+                out.add(ev);
+
+                OperationLog logEv = new OperationLog();
+                logEv.setOpType(existedEvent ? "UPDATE_EVENT" : "CREATE_EVENT");
+                logEv.setSummary(spec.summary);
+                logEv.setTargetType("EVENT");
+                logEv.setRadicateUid(uid);
+                logEv.setStatus(code >= 200 && code < 300 ? "SUCCESS" : "FAILED");
+                logEv.setMessage("code=" + code);
+                logEv.setCreatedAt(java.time.Instant.now());
+                logEv.setRecordId(recordId);
+                logEv.setTaskId(taskId);
+                logs.save(logEv);
+            }
+
+            String todoUid = uid + "-todo";
+            String todoIcs = formatter.formatTodo(spec, todoUid);
+            String prevTodoIcs = getTodoIcsBySummaryWithCred(spec.summary, base, user, pass);
+            boolean existedTodo = prevTodoIcs != null;
+            boolean changedTodo = !existedTodo || !normalize(prevTodoIcs).equals(normalize(todoIcs));
+            if (changedTodo) {
+                int todoCode = publisher.replaceTodoBySummary(todoIcs, todoUid, spec.summary, base, user, pass);
+                RadicateSyncResult td = new RadicateSyncResult();
+                td.setSummary(spec.summary);
+                td.setUid(todoUid);
+                td.setCode(todoCode);
+                td.setPayload(todoIcs);
+                td.setTargetType("TODO");
+                out.add(td);
+
+                OperationLog logTd = new OperationLog();
+                logTd.setOpType(existedTodo ? "UPDATE_TODO" : "CREATE_TODO");
+                logTd.setSummary(spec.summary);
+                logTd.setTargetType("TODO");
+                logTd.setRadicateUid(todoUid);
+                logTd.setStatus(todoCode >= 200 && todoCode < 300 ? "SUCCESS" : "FAILED");
+                logTd.setMessage("code=" + todoCode);
+                logTd.setCreatedAt(java.time.Instant.now());
+                logTd.setRecordId(recordId);
+                logTd.setTaskId(taskId);
+                logs.save(logTd);
+            }
+        }
+        return out;
+    }
+
     private List<String> listCollectionIcs() {
         String base = CalDavConfig.RADICALE_URL;
         if (!base.endsWith("/")) base = base + "/";
@@ -124,6 +207,34 @@ public class RadicateClientService {
         Request req = new Request.Builder()
                 .url(base)
                 .header("Authorization", Credentials.basic(CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD))
+                .header("Depth", "1")
+                .method("PROPFIND", body)
+                .build();
+        java.util.List<String> result = new java.util.ArrayList<>();
+        try (Response resp = client.newCall(req).execute()) {
+            if (!resp.isSuccessful()) return result;
+            String xml = resp.body().string();
+            java.util.regex.Pattern p = java.util.regex.Pattern.compile("<href>(.*?)</href>", java.util.regex.Pattern.CASE_INSENSITIVE | java.util.regex.Pattern.DOTALL);
+            java.util.regex.Matcher m = p.matcher(xml);
+            java.net.URL bu = new java.net.URL(base);
+            String origin = bu.getProtocol() + "://" + bu.getHost() + (bu.getPort() != -1 ? (":" + bu.getPort()) : "");
+            while (m.find()) {
+                String href = m.group(1).trim();
+                if (!href.endsWith(".ics")) continue;
+                String url = href.startsWith("http") ? href : origin + href;
+                result.add(url);
+            }
+        } catch (Exception ignored) {}
+        return result;
+    }
+
+    private List<String> listCollectionIcsWithCred(String base, String user, String pass) {
+        if (!base.endsWith("/")) base = base + "/";
+        OkHttpClient client = new OkHttpClient();
+        RequestBody body = RequestBody.create(MediaType.parse("text/xml"), "<propfind xmlns=\"DAV:\"><allprop/></propfind>");
+        Request req = new Request.Builder()
+                .url(base)
+                .header("Authorization", Credentials.basic(user, pass))
                 .header("Depth", "1")
                 .method("PROPFIND", body)
                 .build();
@@ -172,8 +283,56 @@ public class RadicateClientService {
         return new ArrayList<>(completed);
     }
 
+    public List<String> listCompletedTodoSummaries(Long radicateConfigId) {
+        ServiceConfig cfg = getConfig(radicateConfigId, "RADICATE");
+        String base = cfg != null ? cfg.getBaseUrl() : CalDavConfig.RADICALE_URL;
+        String user = cfg != null ? cfg.getUsername() : CalDavConfig.RADICALE_USERNAME;
+        String pass = cfg != null ? cfg.getPassword() : CalDavConfig.RADICALE_PASSWORD;
+        List<String> urls = listCollectionIcsWithCred(base, user, pass);
+        OkHttpClient client = new OkHttpClient();
+        Set<String> completed = new HashSet<>();
+        for (String url : urls) {
+            Request get = new Request.Builder()
+                    .url(url)
+                    .header("Authorization", Credentials.basic(user, pass))
+                    .get()
+                    .build();
+            try (Response resp = client.newCall(get).execute()) {
+                if (!resp.isSuccessful()) continue;
+                String ics = resp.body().string();
+                List<ICalendar> cals = Biweekly.parse(ics).all();
+                for (ICalendar cal : cals) {
+                    for (VTodo td : cal.getTodos()) {
+                        Status st = td.getStatus();
+                        Summary s = td.getSummary();
+                        String v = s != null ? s.getValue() : null;
+                        if (st != null && "COMPLETED".equalsIgnoreCase(st.getValue()) && v != null) completed.add(v);
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+        return new ArrayList<>(completed);
+    }
+
     public boolean deleteEventsBySummary(String summary) {
         int code = publisher.deleteEventsBySummary(summary);
+        OperationLog log = new OperationLog();
+        log.setOpType("DELETE_EVENT");
+        log.setSummary(summary);
+        log.setTargetType("EVENT");
+        log.setStatus(code >= 200 && code < 300 ? "SUCCESS" : "FAILED");
+        log.setMessage("code=" + code);
+        log.setCreatedAt(java.time.Instant.now());
+        logs.save(log);
+        return code >= 200 && code < 300;
+    }
+
+    public boolean deleteEventsBySummary(String summary, Long radicateConfigId) {
+        ServiceConfig cfg = getConfig(radicateConfigId, "RADICATE");
+        String base = cfg != null ? cfg.getBaseUrl() : CalDavConfig.RADICALE_URL;
+        String user = cfg != null ? cfg.getUsername() : CalDavConfig.RADICALE_USERNAME;
+        String pass = cfg != null ? cfg.getPassword() : CalDavConfig.RADICALE_PASSWORD;
+        int code = publisher.deleteEventsBySummary(summary, base, user, pass);
         OperationLog log = new OperationLog();
         log.setOpType("DELETE_EVENT");
         log.setSummary(summary);
@@ -198,8 +357,34 @@ public class RadicateClientService {
         return code >= 200 && code < 300;
     }
 
+    public boolean deleteEventsBySummaryForCompletedTodo(String summary, Long radicateConfigId) {
+        ServiceConfig cfg = getConfig(radicateConfigId, "RADICATE");
+        String base = cfg != null ? cfg.getBaseUrl() : CalDavConfig.RADICALE_URL;
+        String user = cfg != null ? cfg.getUsername() : CalDavConfig.RADICALE_USERNAME;
+        String pass = cfg != null ? cfg.getPassword() : CalDavConfig.RADICALE_PASSWORD;
+        int code = publisher.deleteEventsBySummary(summary, base, user, pass);
+        OperationLog log = new OperationLog();
+        log.setOpType("DELETE_EVENT");
+        log.setSummary(summary);
+        log.setTargetType("EVENT");
+        log.setStatus(code >= 200 && code < 300 ? "SUCCESS" : "FAILED");
+        log.setMessage("code=" + code + "; reason=TODO_COMPLETED");
+        log.setCreatedAt(java.time.Instant.now());
+        logs.save(log);
+        return code >= 200 && code < 300;
+    }
+
     public boolean eventSummaryExists(String summary) {
         List<String> evs = publisher.listSummaries();
+        return evs.contains(summary);
+    }
+
+    public boolean eventSummaryExists(String summary, Long radicateConfigId) {
+        ServiceConfig cfg = getConfig(radicateConfigId, "RADICATE");
+        String base = cfg != null ? cfg.getBaseUrl() : CalDavConfig.RADICALE_URL;
+        String user = cfg != null ? cfg.getUsername() : CalDavConfig.RADICALE_USERNAME;
+        String pass = cfg != null ? cfg.getPassword() : CalDavConfig.RADICALE_PASSWORD;
+        List<String> evs = publisher.listSummaries(base, user, pass);
         return evs.contains(summary);
     }
 
@@ -226,12 +411,58 @@ public class RadicateClientService {
         return null;
     }
 
+    private String getEventIcsBySummaryWithCred(String summaryVal, String base, String user, String pass) {
+        for (String url : listCollectionIcsWithCred(base, user, pass)) {
+            OkHttpClient client = new OkHttpClient();
+            Request get = new Request.Builder()
+                    .url(url)
+                    .header("Authorization", Credentials.basic(user, pass))
+                    .get().build();
+            try (Response resp = client.newCall(get).execute()) {
+                if (!resp.isSuccessful()) continue;
+                String ics = resp.body().string();
+                List<ICalendar> cals = Biweekly.parse(ics).all();
+                for (ICalendar cal : cals) {
+                    for (biweekly.component.VEvent ev : cal.getEvents()) {
+                        Summary s = ev.getSummary();
+                        String v = s != null ? s.getValue() : null;
+                        if (v != null && v.equals(summaryVal)) return ics;
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
     private String getTodoIcsBySummary(String summaryVal) {
         for (String url : listCollectionIcs()) {
             OkHttpClient client = new OkHttpClient();
             Request get = new Request.Builder()
                     .url(url)
                     .header("Authorization", Credentials.basic(CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD))
+                    .get().build();
+            try (Response resp = client.newCall(get).execute()) {
+                if (!resp.isSuccessful()) continue;
+                String ics = resp.body().string();
+                List<ICalendar> cals = Biweekly.parse(ics).all();
+                for (ICalendar cal : cals) {
+                    for (VTodo td : cal.getTodos()) {
+                        Summary s = td.getSummary();
+                        String v = s != null ? s.getValue() : null;
+                        if (v != null && v.equals(summaryVal)) return ics;
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
+    private String getTodoIcsBySummaryWithCred(String summaryVal, String base, String user, String pass) {
+        for (String url : listCollectionIcsWithCred(base, user, pass)) {
+            OkHttpClient client = new OkHttpClient();
+            Request get = new Request.Builder()
+                    .url(url)
+                    .header("Authorization", Credentials.basic(user, pass))
                     .get().build();
             try (Response resp = client.newCall(get).execute()) {
                 if (!resp.isSuccessful()) continue;

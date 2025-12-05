@@ -32,7 +32,7 @@
   <table id="tbl">
     <thead>
       <tr>
-        <th>ID</th><th>名称</th><th>启用</th><th>Cron</th><th>状态</th><th>操作</th>
+        <th>ID</th><th>名称</th><th>启用</th><th>Jira配置</th><th>Radicate配置</th><th>Cron</th><th>JQL</th><th>描述</th><th>状态</th><th>操作</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -51,12 +51,12 @@
       <select id="isEnabled"><option value="true">true</option><option value="false">false</option></select>
     </div>
     <div>
-      <label>Jira配置ID</label>
-      <input id="jiraConfigId" placeholder="服务配置中的 JIRA ID">
+      <label>Jira配置</label>
+      <select id="jiraConfigId"></select>
     </div>
     <div>
-      <label>Radicate配置ID</label>
-      <input id="radicateConfigId" placeholder="服务配置中的 RADICATE ID">
+      <label>Radicate配置</label>
+      <select id="radicateConfigId"></select>
     </div>
     <div>
       <label>Cron表达式</label>
@@ -85,15 +85,35 @@
       document.querySelectorAll('.side-nav a').forEach(a=>{ if(a.getAttribute('href')===canon) a.classList.add('active') });
     })();
     const tbody=document.querySelector('#tbl tbody');
+    let jiraOptions=[]; let radicateOptions=[];
+    function fillConfigSelects() {
+      const jSel=document.querySelector('#jiraConfigId');
+      const rSel=document.querySelector('#radicateConfigId');
+      jSel.innerHTML='<option value="">未选择</option>' + jiraOptions.map(x=>`<option value="${x.id}">${x.serviceName||('JIRA '+x.id)}</option>`).join('');
+      rSel.innerHTML='<option value="">未选择</option>' + radicateOptions.map(x=>`<option value="${x.id}">${x.serviceName||('RADICATE '+x.id)}</option>`).join('');
+    }
+    function loadConfigs(){
+      return fetch('/api/config/services').then(r=>r.json()).then(list=>{
+        jiraOptions=list.filter(x=>x.serviceType==='JIRA');
+        radicateOptions=list.filter(x=>x.serviceType==='RADICATE');
+        fillConfigSelects();
+      });
+    }
     function load(){
-      fetch(api).then(r=>r.json()).then(list=>{
+      Promise.all([loadConfigs(), fetch(api).then(r=>r.json())]).then(([_, list])=>{
         tbody.innerHTML='';
         list.forEach(x=>{
           const tr=document.createElement('tr');
+          const jSelOpts = '<option value="">未选择</option>' + jiraOptions.map(o=>`<option value='${o.id}' ${x.jiraConfigId===o.id?"selected":""}>${o.serviceName||('JIRA '+o.id)}</option>`).join('');
+          const rSelOpts = '<option value="">未选择</option>' + radicateOptions.map(o=>`<option value='${o.id}' ${x.radicateConfigId===o.id?"selected":""}>${o.serviceName||('RADICATE '+o.id)}</option>`).join('');
           tr.innerHTML=`<td>${x.id}</td>
           <td><input data-k='taskName' value='${x.taskName||''}' disabled></td>
           <td><select data-k='isEnabled' disabled><option value='true' ${x.isEnabled?'selected':''}>true</option><option value='false' ${!x.isEnabled?'selected':''}>false</option></select></td>
-          <td><input data-k='cronExpression' value='${x.cronExpression||''}' disabled></td>
+          <td><select data-k='jiraConfigId' disabled>${jSelOpts}</select> <span class='badge' data-k='jiraStatus'></span></td>
+          <td><select data-k='radicateConfigId' disabled>${rSelOpts}</select> <span class='badge' data-k='radicateStatus'></span></td>
+          <td><input data-k='cronExpression' value='${x.cronExpression||''}' disabled> <span class='badge' data-k='cronStatus'></span></td>
+          <td><textarea data-k='jqlExpression' rows='3' disabled>${x.jqlExpression||''}</textarea></td>
+          <td><textarea data-k='description' rows='2' disabled>${x.description||''}</textarea></td>
           <td><span class='badge'>${x.syncStatus||''}</span></td>
           <td class='ops'>
             <button class='btn-outline icon-btn' title='编辑' data-act='edit' data-id='${x.id}'><svg class='icon icon-md'><use href='#i-edit'/></svg></button>
@@ -117,13 +137,35 @@
           const go=async()=>{
             try{
               if(act==='edit'){
-                const tr=b.closest('tr'); tr.querySelectorAll('input,select').forEach(el=>el.disabled=false);
+                const tr=b.closest('tr'); tr.querySelectorAll('input,select,textarea').forEach(el=>el.disabled=false);
                 tr.querySelector("[data-act='save']").disabled=false;
+                const jSel=tr.querySelector("[data-k='jiraConfigId']");
+                const rSel=tr.querySelector("[data-k='radicateConfigId']");
+                const jStatus=tr.querySelector("[data-k='jiraStatus']");
+                const rStatus=tr.querySelector("[data-k='radicateStatus']");
+                const cronInput=tr.querySelector("[data-k='cronExpression']");
+                const cronStatus=tr.querySelector("[data-k='cronStatus']");
+                function findCfg(id, list){ const v=parseInt(id||'0'); return list.find(x=>x.id===v); }
+                function updateJ(){ const cfg=findCfg(jSel.value, jiraOptions); jStatus.textContent=cfg? (cfg.connectionStatus||'') : ''; }
+                function updateR(){ const cfg=findCfg(rSel.value, radicateOptions); rStatus.textContent=cfg? (cfg.connectionStatus||'') : ''; }
+                function validCron(s){ const parts=(s||'').trim().split(/\s+/); return parts.length===6 || parts.length===7; }
+                function updateCron(){ const ok=validCron(cronInput.value); cronStatus.textContent= ok ? '合法' : '不合法'; tr.querySelector("[data-act='save']").disabled=!ok; }
+                jSel.onchange=updateJ; rSel.onchange=updateR; cronInput.oninput=updateCron; updateJ(); updateR(); updateCron();
               }
               if(act==='save'){
                 const tr=b.closest('tr');
                 const get=k=>tr.querySelector(`[data-k='${k}']`).value;
-                const body={taskName:get('taskName'),isEnabled:get('isEnabled')==='true',cronExpression:get('cronExpression')};
+                const body={
+                  taskName:get('taskName'),
+                  isEnabled:get('isEnabled')==='true',
+                  jiraConfigId: parseInt(get('jiraConfigId')||'0')||null,
+                  radicateConfigId: parseInt(get('radicateConfigId')||'0')||null,
+                  cronExpression:get('cronExpression'),
+                  jqlExpression: tr.querySelector("[data-k='jqlExpression']").value,
+                  description: tr.querySelector("[data-k='description']").value
+                };
+                const okCron = ((body.cronExpression||'').trim().split(/\s+/).length===6) || ((body.cronExpression||'').trim().split(/\s+/).length===7);
+                if(!okCron){ alert('Cron表达式不合法：需6或7段'); return; }
                 await fetch(`${api}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
                 toast('已保存');
               }
@@ -144,8 +186,8 @@
       const body={
         taskName:document.querySelector('#taskName').value,
         isEnabled:document.querySelector('#isEnabled').value==='true',
-        jiraConfigId:parseInt(document.querySelector('#jiraConfigId').value||'0'),
-        radicateConfigId:parseInt(document.querySelector('#radicateConfigId').value||'0'),
+        jiraConfigId:parseInt(document.querySelector('#jiraConfigId').value||'0')||null,
+        radicateConfigId:parseInt(document.querySelector('#radicateConfigId').value||'0')||null,
         cronExpression:document.querySelector('#cronExpression').value,
         jqlExpression:document.querySelector('#jqlExpression').value,
         description:document.querySelector('#description').value

@@ -39,9 +39,9 @@ public class SyncExecutionService {
         rec.setCreatedAt(Instant.now());
         recordRepo.save(rec);
         try {
-            List<EventSpec> specs = jira.fetchByJql(task.getJqlExpression());
+            List<EventSpec> specs = jira.fetchByJql(task.getJiraConfigId(), task.getJqlExpression());
             if (specs == null) specs = new ArrayList<>();
-            List<RadicateSyncResult> results = radicate.upsertAndCollect(specs, rec.getId(), task.getId());
+            List<RadicateSyncResult> results = radicate.upsertAndCollect(specs, rec.getId(), task.getId(), task.getRadicateConfigId());
             int ok = 0, fail = 0;
             for (RadicateSyncResult r : results) {
                 com.jirasync.domain.SyncDetail d = new com.jirasync.domain.SyncDetail();
