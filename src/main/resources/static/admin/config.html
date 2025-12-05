@@ -20,13 +20,14 @@
         <a href="/admin/index.html" title="首页"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M3 10 L12 3 L21 10 V21 H3 Z" fill="currentColor"/></svg></span><span class="side-label">首页</span></a>
         <a href="/admin/config.html" title="服务配置"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 2 L19 7 L19 17 L12 22 L5 17 L5 7 Z" fill="currentColor"/></svg></span><span class="side-label">服务配置</span></a>
         <a href="/admin/tasks.html" title="同步任务"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 12 L10 15 L17 8" stroke="currentColor" stroke-width="2" fill="none"/></svg></span><span class="side-label">同步任务</span></a>
+        <a href="/admin/config.html#custom-script" title="自定义脚本"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 2 L19 7 L19 17 L12 22 L5 17 L5 7 Z" fill="currentColor"/></svg></span><span class="side-label">自定义脚本</span></a>
         <a href="/admin/records.html" title="同步记录"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7 L12 12 L16 14" stroke="currentColor" stroke-width="2"/></svg></span><span class="side-label">同步记录</span></a>
       </nav>
     </aside>
     <main>
   <header class="app"><h1>服务配置</h1></header>
 
-  <h3>现有配置</h3>
+  <h3 id="custom-script">现有配置</h3>
   <div class="card">
   <table id="tbl">
     <thead>
@@ -46,6 +47,7 @@
       <select id="serviceType">
         <option value="RADICATE">RADICATE</option>
         <option value="JIRA">JIRA</option>
+        <option value="CUSTOM">CUSTOM</option>
       </select>
     </div>
     <div>
@@ -97,6 +99,8 @@
             <button class='btn-outline icon-btn' title='编辑' data-act='edit' data-id='${x.id}'><svg class='icon icon-md'><use href='#i-edit'/></svg></button>
             <button class='btn-outline icon-btn' title='保存' data-act='save' data-id='${x.id}' disabled><svg class='icon icon-md'><use href='#i-save'/></svg></button>
             <button class='btn-outline icon-btn' title='测试连接' data-act='test' data-id='${x.id}'><svg class='icon icon-md'><use href='#i-test'/></svg></button>
+            <button class='btn-outline icon-btn' title='上传脚本' data-act='script' data-id='${x.id}' ${x.serviceType!=='CUSTOM'?'disabled':''}><svg class='icon icon-md'><use href='#i-edit'/></svg></button>
+            <button class='btn-outline icon-btn' title='测试脚本' data-act='scriptTest' data-id='${x.id}' ${x.serviceType!=='CUSTOM'?'disabled':''}><svg class='icon icon-md'><use href='#i-test'/></svg></button>
             <button class='btn-outline icon-btn btn-danger' title='删除' data-act='del' data-id='${x.id}'><svg class='icon icon-md'><use href='#i-trash'/></svg></button>
           </td>`;
           tbody.appendChild(tr);
@@ -124,6 +128,17 @@
           }
           if(act==='test'){
             fetch(`${api}/${id}/test`,{method:'POST'}).then(r=>r.json()).then(x=>{toast(x.connectionStatus==='OK'?'连接成功':'连接失败');load();});
+          }
+          if(act==='script'){
+            if(b.disabled) return;
+            const code = prompt('粘贴自定义Java脚本源码（类名需为 CustomUserScript）');
+            if(!code) return;
+            fetch(`${api}/${id}/script`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})}).then(()=>load());
+          }
+          if(act==='scriptTest'){
+            if(b.disabled) return;
+            fetch(`${api}/${id}/script/test`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})})
+              .then(r=>r.json()).then(x=>{ alert(`脚本测试：生成 ${x.count||0} 条，示例摘要：${x.sample||''}`); });
           }
           if(act==='del'){
             fetch(`${api}/${id}`,{method:'DELETE'}).then(()=>load());

@@ -24,7 +24,7 @@
         <okhttp.version>4.12.0</okhttp.version>
         <ical4j.version>3.2.10</ical4j.version>
         <slf4j.version>2.0.12</slf4j.version>
-        <main.class>com.jirasync.Application</main.class>
+        <main.class>com.calsync.Application</main.class>
     </properties>
 
     <dependencies>
