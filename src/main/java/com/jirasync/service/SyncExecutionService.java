@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import com.winstone.sync.EventSpec;
 
 @Service
 public class SyncExecutionService {

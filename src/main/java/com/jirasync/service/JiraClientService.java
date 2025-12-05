@@ -8,6 +8,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class JiraClientService {
     public List<EventSpec> fetchByJql(String jql) {
-        return new JiraEventSource().fetch();
+        String baseUrl = System.getenv().getOrDefault("JIRA_BASE_URL", "");
+        String email = System.getenv().getOrDefault("JIRA_EMAIL", "");
+        String token = System.getenv().getOrDefault("JIRA_API_TOKEN", "");
+        return new JiraEventSource().fetch(baseUrl, email, token, jql);
     }
 }
