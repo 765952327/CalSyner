@@ -88,7 +88,7 @@
         tbody.innerHTML='';
         list.forEach(x=>{
           const tr=document.createElement('tr');
-          tr.innerHTML=`<td>${x.id}</td><td><select data-k='serviceType' disabled><option ${x.serviceType==='RADICATE'?'selected':''}>RADICATE</option><option ${x.serviceType==='JIRA'?'selected':''}>JIRA</option></select></td>
+          tr.innerHTML=`<td>${x.id}</td><td><select data-k='serviceType' disabled><option ${x.serviceType==='RADICATE'?'selected':''}>RADICATE</option><option ${x.serviceType==='JIRA'?'selected':''}>JIRA</option><option ${x.serviceType==='CUSTOM'?'selected':''}>CUSTOM</option></select></td>
           <td><input data-k='serviceName' value='${x.serviceName||''}' disabled></td>
           <td><input data-k='baseUrl' value='${x.baseUrl||''}' disabled></td>
           <td><input data-k='username' value='${x.username||''}' disabled></td>
