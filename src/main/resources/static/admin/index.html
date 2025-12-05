@@ -1,0 +1,196 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>JiraSync 管理首页</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body class="container">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand"><span>JiraSync</span></div>
+      <nav class="side-nav">
+        <a href="/admin/index.html" title="首页"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M3 10 L12 3 L21 10 V21 H3 Z" fill="currentColor"/></svg></span><span class="side-label">首页</span></a>
+        <a href="/admin/config.html" title="服务配置"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 2 L19 7 L19 17 L12 22 L5 17 L5 7 Z" fill="currentColor"/></svg></span><span class="side-label">服务配置</span></a>
+        <a href="/admin/tasks.html" title="同步任务"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 12 L10 15 L17 8" stroke="currentColor" stroke-width="2" fill="none"/></svg></span><span class="side-label">同步任务</span></a>
+        <a href="/admin/records.html" title="同步记录"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7 L12 12 L16 14" stroke="currentColor" stroke-width="2"/></svg></span><span class="side-label">同步记录</span></a>
+      </nav>
+    </aside>
+    <main>
+      <header class="app section"><h1>JiraSync 概览</h1></header>
+      <div class="grid cols-3 section">
+        <div class="card kpi">
+          <div>
+            <div class="label"><svg class="icon icon-md" viewBox="0 0 24 24"><path d="M12 2 L19 7 L19 17 L12 22 L5 17 L5 7 Z" fill="currentColor"/></svg> 服务配置</div>
+            <div class="trend">Jira / Radicate</div>
+          </div>
+          <div class="value" id="kServices">-</div>
+        </div>
+        <div class="card kpi">
+          <div>
+            <div class="label"><svg class="icon icon-md" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 12 L10 15 L17 8" stroke="currentColor" stroke-width="2" fill="none"/></svg> Jira配置</div>
+            <div class="trend">总数</div>
+          </div>
+          <div class="value" id="kJira">-</div>
+        </div>
+        <div class="card kpi">
+          <div>
+            <div class="label"><svg class="icon icon-md" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7 L12 12 L16 14" stroke="currentColor" stroke-width="2"/></svg> Radicate配置</div>
+            <div class="trend">总数</div>
+          </div>
+          <div class="value" id="kRadicate">-</div>
+        </div>
+        <div class="card kpi">
+          <div>
+            <div class="label">同步任务</div>
+            <div class="trend">总数</div>
+          </div>
+          <div class="value" id="kTasks">-</div>
+        </div>
+        <div class="card kpi">
+          <div>
+            <div class="label">启用任务</div>
+            <div class="trend">当前启用</div>
+          </div>
+          <div class="value" id="kEnabled">-</div>
+        </div>
+        <div class="card kpi">
+          <div>
+            <div class="label">最近同步状态</div>
+            <div class="trend">最新批次</div>
+          </div>
+          <div class="value" id="kLastStatus">-</div>
+        </div>
+      </div>
+      <div class="card section">
+        <h3>最近同步记录（前5条）</h3>
+        <table id="tblRecent">
+          <thead>
+            <tr><th>任务名称</th><th>开始时间</th><th>结束时间</th><th>状态</th><th>总数</th><th>处理</th><th>失败</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="charts section">
+        <div class="chart">
+          <h3>状态分布（饼图）</h3>
+          <svg id="chartStatus"></svg>
+          <div class="legend">
+            <div class="item"><span class="swatch sw-success"></span>SUCCESS</div>
+            <div class="item"><span class="swatch sw-failed"></span>FAILED</div>
+            <div class="item"><span class="swatch sw-partial"></span>PARTIAL</div>
+            <div class="item"><span class="swatch sw-running"></span>RUNNING</div>
+          </div>
+        </div>
+        <div class="chart">
+          <h3>平均耗时（秒）（近12批）</h3>
+          <svg id="chartTrend"></svg>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script>
+    (function(){
+      const p=location.pathname;
+      const canon = (p.endsWith('/admin/logs.html')||p.endsWith('/admin/details.html'))? '/admin/records.html' : p;
+      document.querySelectorAll('.side-nav a').forEach(a=>{ if(a.getAttribute('href')===canon) a.classList.add('active') });
+    })();
+    const pad=n=>n<10?'0'+n:n;
+    const fmt=t=>{if(!t)return ''; const d=new Date(t); if(isNaN(d)) return ''; return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`};
+    async function load(){
+      try{
+        const services=await fetch('/api/config/services').then(r=>r.json());
+        const tasks=await fetch('/api/sync/tasks').then(r=>r.json());
+        const records=await fetch('/api/sync/records').then(r=>r.json());
+        const jiraCnt=services.filter(s=>s.serviceType==='JIRA').length;
+        const radCnt=services.filter(s=>s.serviceType==='RADICATE').length;
+        document.querySelector('#kServices').textContent=services.length;
+        document.querySelector('#kJira').textContent=jiraCnt;
+        document.querySelector('#kRadicate').textContent=radCnt;
+        document.querySelector('#kTasks').textContent=tasks.length;
+        document.querySelector('#kEnabled').textContent=tasks.filter(t=>t.isEnabled).length;
+        let last = null;
+        records.forEach(r=>{ if(!last) last=r; else if((r.startTime||'')>(last.startTime||'')) last=r; });
+        document.querySelector('#kLastStatus').textContent= last? (last.status||'-') : '-';
+        const sr = records.length? Math.round((records.filter(r=>r.status==='SUCCESS').length/records.length)*100) : 0;
+        const avgDur = (function(){
+          const durs = records.map(r=>{const s=new Date(r.startTime||0), e=new Date(r.endTime||0); if(isNaN(s)||isNaN(e)) return 0; return Math.max(0,(e-s)/1000);});
+          const valid = durs.filter(x=>x>0); if(!valid.length) return 0; return Math.round(valid.reduce((a,b)=>a+b,0)/valid.length);
+        })();
+        // 可选：将成功率与平均耗时显示到现有 KPI 卡片（复用“最近同步状态”附近）
+        const taskMap={}; tasks.forEach(t=>taskMap[t.id]=t.taskName||('任务 '+t.id));
+        const tbody=document.querySelector('#tblRecent tbody');
+        tbody.innerHTML='';
+        records.sort((a,b)=>new Date(b.startTime||0)-new Date(a.startTime||0)).slice(0,5).forEach(x=>{
+          const tr=document.createElement('tr');
+          const name = taskMap[x.taskId] || '';
+          tr.innerHTML=`<td>${name}</td><td>${fmt(x.startTime)}</td><td>${fmt(x.endTime)}</td><td><span class='badge'>${x.status||''}</span></td><td>${x.totalItems||0}</td><td>${x.processedItems||0}</td><td>${x.failedItems||0}</td>`;
+          tbody.appendChild(tr);
+        });
+
+        const cts={SUCCESS:0,FAILED:0,PARTIAL:0,RUNNING:0};
+        records.forEach(r=>{ if(r.status&&cts.hasOwnProperty(r.status)) cts[r.status]++; });
+        drawDonut(cts);
+        drawThroughput(records);
+      }catch(e){console.error(e)}
+    }
+    load();
+
+    function drawDonut(cts){
+      const svg=document.querySelector('#chartStatus'); svg.innerHTML='';
+      const w=svg.clientWidth||600,h=svg.clientHeight||220; const cx=w/2, cy=h/2; const r=80; const sw=30;
+      const total = Object.values(cts).reduce((a,b)=>a+b,0) || 1;
+      let acc=0;
+      const mkArc=(start,end,cls)=>{
+        const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+        circle.setAttribute('cx', String(cx)); circle.setAttribute('cy', String(cy)); circle.setAttribute('r', String(r));
+        circle.setAttribute('class','donut-seg '+cls);
+        circle.setAttribute('stroke-width', String(sw));
+        const cLen=2*Math.PI*r; const segLen=(end-start)*cLen; const offset=cLen*start;
+        circle.setAttribute('stroke-dasharray', `${segLen} ${cLen}`);
+        circle.setAttribute('stroke-dashoffset', String(-offset));
+        svg.appendChild(circle);
+      };
+      const order=['SUCCESS','FAILED','PARTIAL','RUNNING'];
+      order.forEach(k=>{
+        const v=cts[k]||0; const frac=v/total; const start=acc; const end=acc+frac; acc=end;
+        const cls = 'donut-'+k.toLowerCase();
+        mkArc(start,end,cls);
+      });
+      const hole=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      hole.setAttribute('cx', String(cx)); hole.setAttribute('cy', String(cy)); hole.setAttribute('r', String(r-sw/2-1)); hole.setAttribute('fill', '#fff');
+      svg.appendChild(hole);
+    }
+
+    function drawThroughput(records){
+      const svg=document.querySelector('#chartTrend'); svg.innerHTML='';
+      const w=svg.clientWidth||600,h=svg.clientHeight||220; const margin=30;
+      const data=records.slice().sort((a,b)=>new Date(a.startTime||0)-new Date(b.startTime||0)).slice(-12).map(r=>{const s=new Date(r.startTime||0), e=new Date(r.endTime||0); if(isNaN(s)||isNaN(e)) return 0; return Math.max(0,(e-s)/1000);} );
+      const max=Math.max(1,...data); const bw=Math.floor((w-2*margin)/data.length) - 6;
+      const axis=document.createElementNS('http://www.w3.org/2000/svg','line');
+      axis.setAttribute('x1', String(margin)); axis.setAttribute('y1', String(h-margin)); axis.setAttribute('x2', String(w-margin)); axis.setAttribute('y2', String(h-margin)); axis.setAttribute('class','axis');
+      svg.appendChild(axis);
+      data.forEach((v,i)=>{
+        const bh = Math.floor((h-2*margin)*v/max);
+        const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+        rect.setAttribute('x', String(margin + i*(bw+6)));
+        rect.setAttribute('y', String(h-margin-bh));
+        rect.setAttribute('width', String(bw));
+        rect.setAttribute('height', String(bh));
+        rect.setAttribute('fill', '#3B82F6');
+        svg.appendChild(rect);
+        const label=document.createElementNS('http://www.w3.org/2000/svg','text');
+        const lx = margin + i*(bw+6) + bw/2;
+        const ly = h - margin - bh - 4;
+        label.setAttribute('x', String(lx));
+        label.setAttribute('y', String(ly));
+        label.setAttribute('text-anchor','middle');
+        label.setAttribute('class','val');
+        label.textContent=String(Math.round(v));
+        svg.appendChild(label);
+      });
+    }
+  </script>
+</body>
+</html>

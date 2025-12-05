@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>同步数据详情</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body class="container">
+  <div class="layout">
+    <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/><rect x="3" y="3" width="12" height="12" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/></symbol>
+      <symbol id="i-success" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 12l3 3 7-7" stroke="currentColor" stroke-width="2" fill="none"/></symbol>
+      <symbol id="i-failed" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 8l8 8M16 8l-8 8" stroke="currentColor" stroke-width="2"/></symbol>
+      <symbol id="i-skip" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 8h8v8H8z" stroke="currentColor" stroke-width="2" fill="none"/></symbol>
+    </svg>
+    <aside class="sidebar">
+      <div class="brand"><span>JiraSync</span></div>
+      <nav class="side-nav">
+        <a href="/admin/index.html" title="首页"><span class="side-icon"><svg viewBox="0 0 24 24"><path d="M3 10 L12 3 L21 10 V21 H3 Z" fill="currentColor"/></svg></span><span class="side-label">首页</span></a>
+        <a href="/admin/config.html" title="服务配置"><span class="side-icon"><svg viewBox="0 0 24 24"><path d="M12 2 L19 7 L19 17 L12 22 L5 17 L5 7 Z" fill="currentColor"/></svg></span><span class="side-label">服务配置</span></a>
+        <a href="/admin/tasks.html" title="同步任务"><span class="side-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 12 L10 15 L17 8" stroke="currentColor" stroke-width="2" fill="none"/></svg></span><span class="side-label">同步任务</span></a>
+        <a href="/admin/records.html" title="同步记录"><span class="side-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7 L12 12 L16 14" stroke="currentColor" stroke-width="2"/></svg></span><span class="side-label">同步记录</span></a>
+      </nav>
+    </aside>
+    <main>
+  <header class="app"><h1>同步数据详情</h1></header>
+  <div>
+    <label>批次ID</label>
+    <input id="recId" placeholder="输入同步记录ID">
+    <button class="btn" id="btnLoad">加载</button>
+  </div>
+  <div class="grid cols-2">
+    <div>
+      <h3>数据明细</h3>
+      <div class="card">
+      <table id="tblDetails">
+        <thead>
+          <tr><th>ID</th><th>摘要</th><th>目标</th><th>状态</th><th>UID</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      </div>
+      <div class="card">
+        <h3>ICS 内容</h3>
+        <div class="toolbar"><div class="spacer"></div><button class="btn icon-btn" title="复制" id="btnCopy"><svg class='icon'><use href='#i-copy'/></svg></button></div>
+        <pre id="payload"></pre>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+      <h3>操作日志</h3>
+      <table id="tblOps">
+        <thead>
+          <tr><th>ID</th><th>类型</th><th>摘要</th><th>目标</th><th>状态</th><th>消息</th><th>时间</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      const p=location.pathname;
+      const canon = (p.endsWith('/admin/logs.html')||p.endsWith('/admin/details.html'))? '/admin/records.html' : p;
+      document.querySelectorAll('.side-nav a').forEach(a=>{ if(a.getAttribute('href')===canon) a.classList.add('active') });
+    })();
+    const pad=n=>n<10?'0'+n:n;
+    const fmt=t=>{if(!t)return ''; const d=new Date(t); if(isNaN(d)) return ''; return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`};
+    function load(){
+      const id=document.querySelector('#recId').value.trim();
+      if(!id){alert('请输入批次ID');return;}
+      fetch(`/api/sync/records/${id}/details`).then(r=>r.json()).then(list=>{
+        const tbody=document.querySelector('#tblDetails tbody');
+        tbody.innerHTML='';
+        if(list.length===0){
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td colspan='5'><div class='empty'><svg class='icon'><use href='#i-copy'/></svg> 暂无数据明细</div></td>`;
+          tbody.appendChild(tr);
+          return;
+        }
+        list.forEach(d=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td>${d.id}</td><td>${d.itemSummary||d.itemId||''}</td><td>${d.targetType||''}</td><td>${d.status}</td><td>${d.radicateUid||''}</td>`;
+          tr.onclick=()=>{document.querySelector('#payload').textContent=d.payload||'';};
+          tbody.appendChild(tr);
+        });
+      });
+      fetch(`/api/sync/records/${id}/ops`).then(r=>r.json()).then(list=>{
+        const tbody=document.querySelector('#tblOps tbody');
+        tbody.innerHTML='';
+        if(list.length===0){
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td colspan='7'><div class='empty'><svg class='icon'><use href='#i-skip'/></svg> 暂无操作日志</div></td>`;
+          tbody.appendChild(tr);
+          return;
+        }
+        list.forEach(o=>{
+          const sIcon = o.status==='SUCCESS'? 'success' : (o.status==='FAILED'? 'failed' : 'skip');
+          const cls = o.status==='SUCCESS'? 'icon-success' : (o.status==='FAILED'? 'icon-failed' : 'icon-running');
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td>${o.id}</td><td>${o.opType}</td><td>${o.summary||''}</td><td>${o.targetType||''}</td><td><span class='badge'><svg class='icon icon-sm ${cls}'><use href='#i-${sIcon}'/></svg> ${o.status}</span></td><td>${o.message||''}</td><td>${fmt(o.createdAt)||''}</td>`;
+          tbody.appendChild(tr);
+        });
+      });
+    }
+    document.querySelector('#btnLoad').onclick=load;
+    document.querySelector('#btnCopy').onclick=()=>{const t=document.querySelector('#payload').textContent;navigator.clipboard.writeText(t)};
+    const params=new URLSearchParams(location.search);
+    if(params.get('id')){document.querySelector('#recId').value=params.get('id');load();}
+  </script>
+    </main>
+  </div>
+</body>
+</html>

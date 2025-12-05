@@ -1,0 +1,38 @@
+version: '3.8'
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: jira-sync-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: jira_sync
+      MYSQL_USER: jirasync
+      MYSQL_PASSWORD: jirasync123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - jira-sync-network
+
+  backend:
+    build: .
+    container_name: jira-sync-backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/jira_sync
+      SPRING_DATASOURCE_USERNAME: jirasync
+      SPRING_DATASOURCE_PASSWORD: jirasync123
+    depends_on:
+      - mysql
+    networks:
+      - jira-sync-network
+
+volumes:
+  mysql_data:
+
+networks:
+  jira-sync-network:
+    driver: bridge

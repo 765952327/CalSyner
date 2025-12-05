@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Radicate 页面</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;margin:0;color:#111}
+    header{padding:12px 16px;border-bottom:1px solid #e5e7eb}
+    iframe{width:100%;height:calc(100vh - 56px);border:0}
+    select{padding:6px}
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/admin/index.html">返回首页</a>
+    <span style="margin-left:16px">选择 Radicate 配置：</span>
+    <select id="sel"></select>
+  </header>
+  <iframe id="frame"></iframe>
+  <script>
+    fetch('/api/config/services').then(r=>r.json()).then(list=>{
+      const rad=list.filter(x=>x.serviceType==='RADICATE');
+      const sel=document.querySelector('#sel');
+      rad.forEach(x=>{
+        const opt=document.createElement('option');
+        opt.value=x.baseUrl; opt.text=x.serviceName;
+        sel.appendChild(opt);
+      });
+      if(rad.length>0){
+        document.querySelector('#frame').src=rad[0].baseUrl;
+      }
+      sel.onchange=()=>{document.querySelector('#frame').src=sel.value;};
+    });
+  </script>
+</body>
+</html>

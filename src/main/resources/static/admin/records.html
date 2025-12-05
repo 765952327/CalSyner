@@ -1,0 +1,129 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>同步记录</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body class="container">
+  <div class="layout">
+    <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7z" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="3" fill="currentColor"/></symbol>
+      <symbol id="i-logs" viewBox="0 0 24 24"><path d="M4 4h16v4H4zM4 10h16v4H4zM4 16h16v4H4z" fill="currentColor"/></symbol>
+      <symbol id="i-success" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 12l3 3 7-7" stroke="currentColor" stroke-width="2" fill="none"/></symbol>
+      <symbol id="i-failed" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 8l8 8M16 8l-8 8" stroke="currentColor" stroke-width="2"/></symbol>
+      <symbol id="i-partial" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M6 12h12" stroke="currentColor" stroke-width="2"/></symbol>
+      <symbol id="i-running" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2"/></symbol>
+    </svg>
+    <aside class="sidebar">
+      <div class="brand"><span>JiraSync</span></div>
+      <nav class="side-nav">
+        <a href="/admin/index.html" title="首页"><span class="side-icon"><svg viewBox="0 0 24 24"><path d="M3 10 L12 3 L21 10 V21 H3 Z" fill="currentColor"/></svg></span><span class="side-label">首页</span></a>
+        <a href="/admin/config.html" title="服务配置"><span class="side-icon"><svg viewBox="0 0 24 24"><path d="M12 2 L19 7 L19 17 L12 22 L5 17 L5 7 Z" fill="currentColor"/></svg></span><span class="side-label">服务配置</span></a>
+        <a href="/admin/tasks.html" title="同步任务"><span class="side-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 12 L10 15 L17 8" stroke="currentColor" stroke-width="2" fill="none"/></svg></span><span class="side-label">同步任务</span></a>
+        <a href="/admin/records.html" title="同步记录"><span class="side-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7 L12 12 L16 14" stroke="currentColor" stroke-width="2"/></svg></span><span class="side-label">同步记录</span></a>
+      </nav>
+    </aside>
+    <main>
+  <header class="app"><h1>同步记录</h1></header>
+
+  <div class="card">
+    <label>任务ID</label>
+    <input id="taskId" placeholder="可选">
+    <label>状态</label>
+    <select id="status">
+      <option value="">全部</option>
+      <option>SUCCESS</option>
+      <option>PARTIAL</option>
+      <option>FAILED</option>
+      <option>RUNNING</option>
+    </select>
+    <button class="btn" id="btnLoad">筛选</button>
+  </div>
+  <div class="card">
+  <table id="tbl">
+    <thead>
+      <tr>
+        <th>ID</th><th>任务ID</th><th>任务名称</th><th>开始时间</th><th>结束时间</th><th>状态</th><th>总数</th><th>处理</th><th>失败</th><th>数据详情</th><th>操作日志</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  </div>
+  <div class="card">
+    <div class="toolbar">
+      <button class="btn" id="btnPrev">上一页</button>
+      <button class="btn" id="btnNext">下一页</button>
+      <div class="spacer"></div>
+      <span>第 <span id="pageNum">1</span> / <span id="pageTotal">1</span> 页</span>
+    </div>
+  </div>
+
+  <script>
+    const api='/api/sync/records';
+    (function(){
+      const p=location.pathname;
+      const canon = (p.endsWith('/admin/logs.html')||p.endsWith('/admin/details.html'))? '/admin/records.html' : p;
+      document.querySelectorAll('.side-nav a').forEach(a=>{ if(a.getAttribute('href')===canon) a.classList.add('active') });
+    })();
+    const pad=n=>n<10?'0'+n:n;
+    const fmt=t=>{if(!t)return ''; const d=new Date(t); if(isNaN(d)) return ''; return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`};
+    const tbody=document.querySelector('#tbl tbody');
+    let tasks=[], taskMap={}, state={page:1,size:10,list:[]};
+    async function loadTasks(){
+      tasks = await fetch('/api/sync/tasks').then(r=>r.json());
+      taskMap = {}; tasks.forEach(t=>taskMap[t.id]=t.taskName||('任务 '+t.id));
+    }
+    function load(){
+      const tid=document.querySelector('#taskId').value.trim();
+      const st=document.querySelector('#status').value;
+      const url=tid?`${api}/task/${tid}`:api;
+      Promise.all([loadTasks(), fetch(url).then(r=>r.json())]).then(([_, list])=>{
+        if(st) list=list.filter(x=>x.status===st);
+        list.sort((a,b)=>new Date(b.startTime||0)-new Date(a.startTime||0));
+        state.list=list; state.page=1; render();
+      });
+    }
+    function render(){
+      const total=state.list.length; const totalPages=Math.max(1, Math.ceil(total/state.size));
+      const start=(state.page-1)*state.size; const pageList=state.list.slice(start, start+state.size);
+      document.querySelector('#pageNum').textContent=state.page;
+      document.querySelector('#pageTotal').textContent=totalPages;
+      tbody.innerHTML='';
+      if(pageList.length===0){
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td colspan='11'><div class='empty'><svg class='icon'><use href='#i-logs'/></svg> 暂无记录</div></td>`;
+        tbody.appendChild(tr);
+        document.querySelector('#btnPrev').disabled=true;
+        document.querySelector('#btnNext').disabled=true;
+        return;
+      }
+      pageList.forEach(x=>{
+        const tr=document.createElement('tr');
+        const name = taskMap[x.taskId] || '';
+        const cls = x.status==='SUCCESS'? 'icon-success' : (x.status==='FAILED'? 'icon-failed' : (x.status==='PARTIAL'? 'icon-partial' : 'icon-running'));
+        tr.innerHTML=`<td>${x.id}</td><td>${x.taskId}</td><td>${name}</td><td>${fmt(x.startTime)}</td><td>${fmt(x.endTime)}</td><td><span class='badge'><svg class='icon icon-sm ${cls}'><use href='#i-${x.status==='SUCCESS'?'success':x.status==='FAILED'?'failed':x.status==='PARTIAL'?'partial':'running'}'/></svg> ${x.status}</span></td><td>${x.totalItems||0}</td><td>${x.processedItems||0}</td><td>${x.failedItems||0}</td><td><button class='btn icon-btn' title='数据详情' data-id='${x.id}' data-act='details'><svg class='icon icon-md'><use href='#i-eye'/></svg></button></td><td><button class='btn icon-btn' title='操作日志' data-id='${x.id}' data-act='ops'><svg class='icon icon-md'><use href='#i-logs'/></svg></button></td>`;
+        tbody.appendChild(tr);
+      });
+      document.querySelector('#btnPrev').disabled=(state.page<=1);
+      document.querySelector('#btnNext').disabled=(state.page>=totalPages);
+      document.querySelectorAll('button[data-act]').forEach(b=>{
+        b.onclick=()=>{
+          if(b.dataset.act==='details') window.open(`/admin/details.html?id=${b.dataset.id}`, '_blank');
+          if(b.dataset.act==='ops') window.open(`/admin/logs.html?recordId=${b.dataset.id}`, '_blank');
+        };
+      });
+    }
+    document.querySelector('#btnLoad').onclick=load;
+    document.querySelector('#btnPrev').onclick=()=>{if(state.page>1){state.page--;render();}}
+    document.querySelector('#btnNext').onclick=()=>{state.page++;render();}
+    load();
+
+    function showDetails(id){}
+    function showOps(id){}
+  </script>
+    </main>
+  </div>
+</body>
+</html>
