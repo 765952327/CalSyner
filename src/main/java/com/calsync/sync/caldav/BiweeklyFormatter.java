@@ -14,8 +14,14 @@ public class BiweeklyFormatter {
         if (uid != null) ev.setUid(uid);
         if (spec.summary != null) ev.setSummary(spec.summary);
         if (spec.description != null) ev.setDescription(spec.description);
-        if (spec.start != null) ev.setDateStart(Date.from(spec.start));
-        if (spec.end != null) ev.setDateEnd(Date.from(spec.end));
+        if (!spec.allDay) {
+            if (spec.start != null) ev.setDateStart(Date.from(spec.start));
+            if (spec.end != null) ev.setDateEnd(Date.from(spec.end));
+        } else {
+            if (spec.start != null) ev.setDateStart(Date.from(spec.start), false);
+            if (spec.end != null) ev.setDateEnd(Date.from(spec.end), false);
+        }
+        if (spec.location != null) ev.setLocation(spec.location);
         cal.addEvent(ev);
         return Biweekly.write(cal).go();
     }
@@ -25,6 +31,7 @@ public class BiweeklyFormatter {
         VTodo td = new VTodo();
         if (uid != null) td.setUid(uid);
         if (spec.summary != null) td.setSummary(spec.summary);
+        if (spec.description != null) td.setDescription(spec.description);
         cal.addTodo(td);
         return Biweekly.write(cal).go();
     }

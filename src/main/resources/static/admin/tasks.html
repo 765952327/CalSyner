@@ -21,7 +21,6 @@
         <a href="/admin/index.html" title="首页"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M3 10 L12 3 L21 10 V21 H3 Z" fill="currentColor"/></svg></span><span class="side-label">首页</span></a>
         <a href="/admin/config.html" title="服务配置"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 2 L19 7 L19 17 L12 22 L5 17 L5 7 Z" fill="currentColor"/></svg></span><span class="side-label">服务配置</span></a>
         <a href="/admin/tasks.html" title="同步任务"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 12 L10 15 L17 8" stroke="currentColor" stroke-width="2" fill="none"/></svg></span><span class="side-label">同步任务</span></a>
-        <a href="/admin/config.html#custom-script" title="自定义脚本"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 2 L19 7 L19 17 L12 22 L5 17 L5 7 Z" fill="currentColor"/></svg></span><span class="side-label">自定义脚本</span></a>
         <a href="/admin/records.html" title="同步记录"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7 L12 12 L16 14" stroke="currentColor" stroke-width="2"/></svg></span><span class="side-label">同步记录</span></a>
       </nav>
     </aside>
@@ -108,7 +107,7 @@
           const jSelOpts = '<option value="">未选择</option>' + jiraOptions.map(o=>`<option value='${o.id}' ${x.jiraConfigId===o.id?"selected":""}>${o.serviceName||('JIRA '+o.id)}</option>`).join('');
           const rSelOpts = '<option value="">未选择</option>' + radicateOptions.map(o=>`<option value='${o.id}' ${x.radicateConfigId===o.id?"selected":""}>${o.serviceName||('RADICATE '+o.id)}</option>`).join('');
           tr.innerHTML=`<td>${x.id}</td>
-          <td><input data-k='taskName' value='${x.taskName||''}' disabled></td>
+          <td><span data-t='taskName'>${x.taskName||'-'}</span><input data-k='taskName' value='${x.taskName||''}' disabled style='display:none'></td>
           <td><select data-k='isEnabled' disabled><option value='true' ${x.isEnabled?'selected':''}>true</option><option value='false' ${!x.isEnabled?'selected':''}>false</option></select></td>
           <td><select data-k='jiraConfigId' disabled>${jSelOpts}</select> <span class='badge' data-k='jiraStatus'></span></td>
           <td><select data-k='radicateConfigId' disabled>${rSelOpts}</select> <span class='badge' data-k='radicateStatus'></span></td>
@@ -139,6 +138,8 @@
             try{
               if(act==='edit'){
                 const tr=b.closest('tr'); tr.querySelectorAll('input,select,textarea').forEach(el=>el.disabled=false);
+                const nameSpan=tr.querySelector("[data-t='taskName']"); const nameInput=tr.querySelector("[data-k='taskName']");
+                if(nameSpan&&nameInput){ nameSpan.style.display='none'; nameInput.style.display=''; }
                 tr.querySelector("[data-act='save']").disabled=false;
                 const jSel=tr.querySelector("[data-k='jiraConfigId']");
                 const rSel=tr.querySelector("[data-k='radicateConfigId']");

@@ -22,6 +22,10 @@ public final class FieldMapper {
             else if ("location".equalsIgnoreCase(dst)) s.location = pickString(s, src);
             else if ("start".equalsIgnoreCase(dst)) s.start = pickInstant(s, src, s.start);
             else if ("end".equalsIgnoreCase(dst)) s.end = pickInstant(s, src, s.end);
+            else if ("url".equalsIgnoreCase(dst)) s.url = pickString(s, src);
+            else if ("organizer".equalsIgnoreCase(dst)) s.organizer = pickString(s, src);
+            else if ("externalId".equalsIgnoreCase(dst)) s.externalId = pickString(s, src);
+            else if ("rrule".equalsIgnoreCase(dst)) s.rrule = pickString(s, src);
         }
     }
 
@@ -44,4 +48,3 @@ public final class FieldMapper {
         }
     }
 }
-

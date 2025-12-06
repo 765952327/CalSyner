@@ -20,59 +20,24 @@
         <a href="/admin/index.html" title="首页"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M3 10 L12 3 L21 10 V21 H3 Z" fill="currentColor"/></svg></span><span class="side-label">首页</span></a>
         <a href="/admin/config.html" title="服务配置"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 2 L19 7 L19 17 L12 22 L5 17 L5 7 Z" fill="currentColor"/></svg></span><span class="side-label">服务配置</span></a>
         <a href="/admin/tasks.html" title="同步任务"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 12 L10 15 L17 8" stroke="currentColor" stroke-width="2" fill="none"/></svg></span><span class="side-label">同步任务</span></a>
-        <a href="/admin/config.html#custom-script" title="自定义脚本"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 2 L19 7 L19 17 L12 22 L5 17 L5 7 Z" fill="currentColor"/></svg></span><span class="side-label">自定义脚本</span></a>
         <a href="/admin/records.html" title="同步记录"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7 L12 12 L16 14" stroke="currentColor" stroke-width="2"/></svg></span><span class="side-label">同步记录</span></a>
       </nav>
     </aside>
     <main>
-  <header class="app"><h1>服务配置</h1></header>
+  <header class="app"><h1>服务配置</h1><nav class="app"><a href="/admin/create.html">新增配置</a></nav></header>
 
-  <h3 id="custom-script">现有配置</h3>
-  <div class="card">
-  <table id="tbl">
-    <thead>
-      <tr>
-        <th>ID</th><th>类型</th><th>名称</th><th>地址</th><th>用户名</th><th>状态</th><th>操作</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div class="hero">
+    <h3 class="title">服务配置</h3>
+    <p class="desc">管理各类服务连接与脚本能力，点击卡片查看详细配置。</p>
   </div>
+  <h3 id="custom-script" class="section-title">现有配置</h3>
+  <div id="scriptHelp" class="card" style="display:none">
+    <p>当前显示 <b>CUSTOM</b> 类型的服务。请点击卡片进入详情页面进行脚本管理。</p>
+    <p>如需新增，请在下方“新增配置”选择类型为 <b>CUSTOM</b> 并保存。</p>
+  </div>
+  <div id="svcList" class="grid cols-1"></div>
 
-  <h3>新增配置</h3>
-  <div class="card">
-  <div class="row">
-    <div>
-      <label>类型</label>
-      <select id="serviceType">
-        <option value="RADICATE">RADICATE</option>
-        <option value="JIRA">JIRA</option>
-        <option value="CUSTOM">CUSTOM</option>
-      </select>
-    </div>
-    <div>
-      <label>名称</label>
-      <input id="serviceName" placeholder="例如 Radicate-Prod">
-    </div>
-    <div>
-      <label>地址</label>
-      <input id="baseUrl" placeholder="https://example.com/api">
-    </div>
-    <div>
-      <label>用户名</label>
-      <input id="username">
-    </div>
-    <div>
-      <label>密码</label>
-      <input id="password" type="password">
-    </div>
-    <div>
-      <label>API Token</label>
-      <input id="apiToken">
-    </div>
-  </div>
-  <p><button class="btn" id="btnCreate">保存</button></p>
-  </div>
+  
   <div id="toast" class="toast"></div>
     </main>
   </div>
@@ -82,81 +47,57 @@
     (function(){
       const p=location.pathname;
       const canon = (p.endsWith('/admin/logs.html')||p.endsWith('/admin/details.html'))? '/admin/records.html' : p;
-      document.querySelectorAll('.side-nav a').forEach(a=>{ if(a.getAttribute('href')===canon) a.classList.add('active') });
+      document.querySelectorAll('.side-nav a').forEach(a=>{
+        const href=a.getAttribute('href');
+        if(href===canon) a.classList.add('active');
+        if(location.hash==='#custom-script' && href==='/admin/config.html#custom-script') a.classList.add('active');
+      });
     })();
-    const tbody = document.querySelector('#tbl tbody');
+    const listEl = document.querySelector('#svcList');
     function load(){
       fetch(api).then(r=>r.json()).then(list=>{
-        tbody.innerHTML='';
+        listEl.innerHTML='';
         list.forEach(x=>{
-          const tr=document.createElement('tr');
-          tr.innerHTML=`<td>${x.id}</td><td><select data-k='serviceType' disabled><option ${x.serviceType==='RADICATE'?'selected':''}>RADICATE</option><option ${x.serviceType==='JIRA'?'selected':''}>JIRA</option><option ${x.serviceType==='CUSTOM'?'selected':''}>CUSTOM</option></select></td>
-          <td><input data-k='serviceName' value='${x.serviceName||''}' disabled></td>
-          <td><input data-k='baseUrl' value='${x.baseUrl||''}' disabled></td>
-          <td><input data-k='username' value='${x.username||''}' disabled></td>
-          <td><span class='badge'>${x.connectionStatus||''}</span></td>
-          <td class='ops'>
-            <button class='btn-outline icon-btn' title='编辑' data-act='edit' data-id='${x.id}'><svg class='icon icon-md'><use href='#i-edit'/></svg></button>
-            <button class='btn-outline icon-btn' title='保存' data-act='save' data-id='${x.id}' disabled><svg class='icon icon-md'><use href='#i-save'/></svg></button>
-            <button class='btn-outline icon-btn' title='测试连接' data-act='test' data-id='${x.id}'><svg class='icon icon-md'><use href='#i-test'/></svg></button>
-            <button class='btn-outline icon-btn' title='上传脚本' data-act='script' data-id='${x.id}' ${x.serviceType!=='CUSTOM'?'disabled':''}><svg class='icon icon-md'><use href='#i-edit'/></svg></button>
-            <button class='btn-outline icon-btn' title='测试脚本' data-act='scriptTest' data-id='${x.id}' ${x.serviceType!=='CUSTOM'?'disabled':''}><svg class='icon icon-md'><use href='#i-test'/></svg></button>
-            <button class='btn-outline icon-btn btn-danger' title='删除' data-act='del' data-id='${x.id}'><svg class='icon icon-md'><use href='#i-trash'/></svg></button>
-          </td>`;
-          tbody.appendChild(tr);
+          const card=document.createElement('div');
+          card.className='card svc';
+          card.setAttribute('data-id', String(x.id));
+          card.setAttribute('data-type', x.serviceType||'');
+          const statusClass = (x.connectionStatus==='OK')? 'success' : (x.connectionStatus==='FAILED')? 'failed' : '';
+          card.innerHTML=`
+            <div class='card-header'>
+              <div>
+                <div class='title'>
+                  <span class='name'>${x.serviceName||'(未命名)'} </span>
+                  <span class='badge type'>${x.serviceType||''}</span>
+                  <span class='badge ${statusClass}'>${x.connectionStatus||''}</span>
+                </div>
+                <div class='subtitle muted'>${x.baseUrl||''}</div>
+              </div>
+            </div>
+          `;
+          const t=(x.serviceType||'').toLowerCase();
+          if(t) card.classList.add('t-'+t);
+          card.style.cursor='pointer';
+          card.onclick=(e)=>{
+            const t=e.target.closest('.icon-btn');
+            if(t) return; // 避免与操作按钮冲突
+            location.href=`/admin/service.html?id=${x.id}`;
+          };
+          listEl.appendChild(card);
         });
-        bindRowOps();
+        
+        if(location.hash==='#custom-script') filterForCustom();
       });
     }
     load();
     function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1600)}
-    function bindRowOps(){
-      document.querySelectorAll('[data-act]').forEach(b=>{
-        b.onclick=()=>{
-          const id=b.dataset.id;
-          const act=b.dataset.act;
-          const tr=b.closest('tr');
-          const get= k=> tr.querySelector(`[data-k='${k}']`).value;
-          const setDisabled = v => tr.querySelectorAll('input,select').forEach(el=>el.disabled=v);
-          if(act==='edit'){
-            setDisabled(false);
-            tr.querySelector("[data-act='save']").disabled=false;
-          }
-          if(act==='save'){
-            const body={serviceType:get('serviceType'),serviceName:get('serviceName'),baseUrl:get('baseUrl'),username:get('username')};
-            fetch(`${api}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(()=>load());
-          }
-          if(act==='test'){
-            fetch(`${api}/${id}/test`,{method:'POST'}).then(r=>r.json()).then(x=>{toast(x.connectionStatus==='OK'?'连接成功':'连接失败');load();});
-          }
-          if(act==='script'){
-            if(b.disabled) return;
-            const code = prompt('粘贴自定义Java脚本源码（类名需为 CustomUserScript）');
-            if(!code) return;
-            fetch(`${api}/${id}/script`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})}).then(()=>load());
-          }
-          if(act==='scriptTest'){
-            if(b.disabled) return;
-            fetch(`${api}/${id}/script/test`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})})
-              .then(r=>r.json()).then(x=>{ alert(`脚本测试：生成 ${x.count||0} 条，示例摘要：${x.sample||''}`); });
-          }
-          if(act==='del'){
-            fetch(`${api}/${id}`,{method:'DELETE'}).then(()=>load());
-          }
-        };
+    function filterForCustom(){
+      document.querySelector('#scriptHelp').style.display='block';
+      document.querySelectorAll('.svc').forEach(card=>{
+        const type = card.dataset.type || '';
+        card.style.display = (type!=='CUSTOM')? 'none' : '';
       });
     }
-    document.querySelector('#btnCreate').onclick=()=>{
-      const body={
-        serviceType:document.querySelector('#serviceType').value,
-        serviceName:document.querySelector('#serviceName').value,
-        baseUrl:document.querySelector('#baseUrl').value,
-        username:document.querySelector('#username').value,
-        password:document.querySelector('#password').value,
-        apiToken:document.querySelector('#apiToken').value
-      };
-      fetch(api,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(()=>load());
-    };
   </script>
 </body>
 </html>

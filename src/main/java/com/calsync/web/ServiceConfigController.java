@@ -23,6 +23,13 @@ public class ServiceConfigController {
     @GetMapping
     public List<ServiceConfig> list() { return repo.findAll(); }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ServiceConfig> get(@PathVariable Long id) {
+        return repo.findById(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @PostMapping
     public ServiceConfig create(@RequestBody ServiceConfig cfg) {
         cfg.setCreatedAt(Instant.now());

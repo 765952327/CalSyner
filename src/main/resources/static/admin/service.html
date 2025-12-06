@@ -1,0 +1,212 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>服务配置详情</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body class="container">
+  <div class="layout">
+    <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+      <symbol id="i-radicate" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M3 8h18" stroke="currentColor" stroke-width="2"/></symbol>
+      <symbol id="i-jira" viewBox="0 0 24 24"><path d="M12 2 L20 10 L12 22 L4 10 Z" fill="currentColor"/></symbol>
+      <symbol id="i-custom" viewBox="0 0 24 24"><path d="M7 8 L3 12 L7 16" stroke="currentColor" stroke-width="2" fill="none"/><path d="M17 8 L21 12 L17 16" stroke="currentColor" stroke-width="2" fill="none"/><path d="M10 7 L14 17" stroke="currentColor" stroke-width="2"/></symbol>
+    </svg>
+    <aside class="sidebar">
+      <div class="brand"><span>JiraSync</span></div>
+      <nav class="side-nav">
+        <a href="/admin/index.html" title="首页"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M3 10 L12 3 L21 10 V21 H3 Z" fill="currentColor"/></svg></span><span class="side-label">首页</span></a>
+        <a href="/admin/config.html" title="服务配置" class="active"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 2 L19 7 L19 17 L12 22 L5 17 L5 7 Z" fill="currentColor"/></svg></span><span class="side-label">服务配置</span></a>
+        <a href="/admin/tasks.html" title="同步任务"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 12 L10 15 L17 8" stroke="currentColor" stroke-width="2" fill="none"/></svg></span><span class="side-label">同步任务</span></a>
+        <a href="/admin/records.html" title="同步记录"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7 L12 12 L16 14" stroke="currentColor" stroke-width="2"/></svg></span><span class="side-label">同步记录</span></a>
+      </nav>
+    </aside>
+    <main>
+      <header class="app"><h1>服务配置详情</h1><nav class="app"><a href="/admin/config.html">返回列表</a></nav></header>
+      <div class="hero">
+        <h3 class="title"><span class="type-icon"><svg class="icon-lg"><use id="typeIconUse" href="#i-radicate"/></svg></span><span id="name">-</span></h3>
+        <p class="desc">类型：<span id="type">-</span>　状态：<span class="badge" id="status">UNKNOWN</span></p>
+      </div>
+
+      <div class="grid cols-auto">
+        <div class="section-card">
+          <h3>基本信息</h3>
+          <div class="row">
+            <div class="form-item">
+              <label>名称</label>
+              <input id="serviceName">
+            </div>
+          </div>
+          <div class="row">
+            <div class="form-item">
+              <label>类型</label>
+              <select id="serviceType">
+                <option value="RADICATE">RADICATE</option>
+                <option value="JIRA">JIRA</option>
+                <option value="CUSTOM">CUSTOM</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="form-item">
+              <label>ID</label>
+              <input id="id" disabled>
+            </div>
+          </div>
+        </div>
+        <div class="section-card">
+          <h3>连接信息</h3>
+          <div class="row">
+            <div class="form-item">
+              <label>地址</label>
+              <input id="baseUrl">
+              <div class="help">例如：https://example.com/api</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="form-item">
+              <label>用户名</label>
+              <input id="username">
+            </div>
+          </div>
+          <div class="row">
+            <div class="form-item">
+              <label>密码</label>
+              <input id="password" type="password">
+            </div>
+          </div>
+        </div>
+        <div class="section-card">
+          <h3>高级</h3>
+          <div class="row">
+            <div class="form-item">
+              <label>API Token</label>
+              <input id="apiToken">
+              <div class="help">用于 API 访问或存储脚本（仅 CUSTOM）</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="form-item">
+              <label>上次测试</label>
+              <input id="lastTestTime" disabled>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="actions-bar">
+          <button class="btn btn-lg" id="btnSave">保存</button>
+          <button class="btn-outline btn-lg" id="btnTest">测试连接</button>
+          <button class="btn-outline btn-lg" id="btnScript" title="上传脚本">上传脚本</button>
+          <button class="btn-outline btn-lg" id="btnScriptTest" title="测试脚本">测试脚本</button>
+          <button class="btn-outline btn-lg btn-danger" id="btnDel" title="删除">删除</button>
+        </div>
+      </div>
+
+      <div id="toast" class="toast"></div>
+    </main>
+  </div>
+
+  <script>
+    const api='/api/config/services';
+    const qs = new URLSearchParams(location.search);
+    const id = qs.get('id');
+    if(!id){
+      alert('缺少参数 id');
+      location.href='/admin/config.html';
+    }
+    function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1600)}
+    function setBadge(el, status){
+      el.classList.remove('success','failed','partial','running');
+      if(status==='OK') el.classList.add('success');
+      else if(status==='FAILED') el.classList.add('failed');
+      el.textContent = status || 'UNKNOWN';
+    }
+    function fmt(ts){
+      if(!ts) return '';
+      const d = new Date(ts);
+      const pad = n => String(n).padStart(2,'0');
+      const y = d.getFullYear();
+      const M = pad(d.getMonth()+1);
+      const d2 = pad(d.getDate());
+      const h = pad(d.getHours());
+      const m = pad(d.getMinutes());
+      const s = pad(d.getSeconds());
+      return `${y}-${M}-${d2} ${h}:${m}:${s}`;
+    }
+    function load(){
+      fetch(`${api}/${id}`).then(r=>{
+        if(!r.ok) throw new Error('not found');
+        return r.json();
+      }).then(x=>{
+        document.querySelector('#name').textContent = x.serviceName || '(未命名)';
+        document.querySelector('#type').textContent = x.serviceType || '';
+        setBadge(document.querySelector('#status'), x.connectionStatus);
+        const hero = document.querySelector('.hero');
+        hero.classList.remove('t-radicate','t-jira','t-custom');
+        const use = document.querySelector('#typeIconUse');
+        if(x.serviceType==='RADICATE'){ hero.classList.add('t-radicate'); use.setAttribute('href','#i-radicate'); }
+        else if(x.serviceType==='JIRA'){ hero.classList.add('t-jira'); use.setAttribute('href','#i-jira'); }
+        else if(x.serviceType==='CUSTOM'){ hero.classList.add('t-custom'); use.setAttribute('href','#i-custom'); }
+        document.querySelector('#serviceType').value = x.serviceType || 'RADICATE';
+        document.querySelector('#serviceName').value = x.serviceName || '';
+        document.querySelector('#id').value = x.id;
+        document.querySelector('#baseUrl').value = x.baseUrl || '';
+        document.querySelector('#username').value = x.username || '';
+        document.querySelector('#password').value = x.password || '';
+        document.querySelector('#apiToken').value = x.apiToken || '';
+        document.querySelector('#lastTestTime').value = fmt(x.lastTestTime);
+        // 状态已在顶部 hero 展示，详情分区不再重复显示
+        const isCustom = x.serviceType === 'CUSTOM';
+        document.querySelector('#btnScript').disabled = !isCustom;
+        document.querySelector('#btnScriptTest').disabled = !isCustom;
+      }).catch(()=>{
+        alert('未找到该服务配置');
+        location.href='/admin/config.html';
+      });
+    }
+    load();
+    document.querySelector('#btnSave').onclick=()=>{
+      const body={
+        serviceType:document.querySelector('#serviceType').value,
+        serviceName:document.querySelector('#serviceName').value,
+        baseUrl:document.querySelector('#baseUrl').value,
+        username:document.querySelector('#username').value,
+        password:document.querySelector('#password').value,
+        apiToken:document.querySelector('#apiToken').value
+      };
+      fetch(`${api}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+        .then(r=>r.json()).then(()=>{toast('已保存');load();});
+    };
+    document.querySelector('#btnTest').onclick=()=>{
+      fetch(`${api}/${id}/test`,{method:'POST'})
+        .then(r=>r.json()).then(x=>{toast(x.connectionStatus==='OK'?'连接成功':'连接失败');load();});
+    };
+    document.querySelector('#btnScript').onclick=()=>{
+      if(document.querySelector('#btnScript').disabled) return;
+      const code = prompt('粘贴自定义Java脚本源码（类名需为 CustomUserScript）');
+      if(!code) return;
+      fetch(`${api}/${id}/script`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})}).then(()=>{toast('脚本已上传');load();});
+    };
+    document.querySelector('#btnScriptTest').onclick=()=>{
+      if(document.querySelector('#btnScriptTest').disabled) return;
+      fetch(`${api}/${id}/script/test`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})})
+        .then(r=>r.json()).then(x=>{ alert(`脚本测试：生成 ${x.count||0} 条，示例摘要：${x.sample||''}`); });
+    };
+    document.querySelector('#btnDel').onclick=async ()=>{
+      if(!confirm('确认删除该服务配置？')) return;
+      try{
+        const r = await fetch(`${api}/${id}`,{method:'DELETE', keepalive:true});
+        if(!r.ok){ toast('删除失败'); return; }
+        // 等待响应完全完成，避免跳转导致请求被浏览器取消
+        await r.text().catch(()=>{});
+        toast('已删除');
+        setTimeout(()=>{ location.href='/admin/config.html'; }, 120);
+      }catch(e){
+        toast('删除失败');
+      }
+    };
+  </script>
+</body>
+</html>

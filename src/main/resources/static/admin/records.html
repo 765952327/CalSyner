@@ -22,7 +22,6 @@
         <a href="/admin/index.html" title="首页"><span class="side-icon"><svg viewBox="0 0 24 24"><path d="M3 10 L12 3 L21 10 V21 H3 Z" fill="currentColor"/></svg></span><span class="side-label">首页</span></a>
         <a href="/admin/config.html" title="服务配置"><span class="side-icon"><svg viewBox="0 0 24 24"><path d="M12 2 L19 7 L19 17 L12 22 L5 17 L5 7 Z" fill="currentColor"/></svg></span><span class="side-label">服务配置</span></a>
         <a href="/admin/tasks.html" title="同步任务"><span class="side-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 12 L10 15 L17 8" stroke="currentColor" stroke-width="2" fill="none"/></svg></span><span class="side-label">同步任务</span></a>
-        <a href="/admin/config.html#custom-script" title="自定义脚本"><span class="side-icon"><svg viewBox="0 0 24 24"><path d="M12 2 L19 7 L19 17 L12 22 L5 17 L5 7 Z" fill="currentColor"/></svg></span><span class="side-label">自定义脚本</span></a>
         <a href="/admin/records.html" title="同步记录"><span class="side-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7 L12 12 L16 14" stroke="currentColor" stroke-width="2"/></svg></span><span class="side-label">同步记录</span></a>
       </nav>
     </aside>
@@ -102,7 +101,7 @@
       }
       pageList.forEach(x=>{
         const tr=document.createElement('tr');
-        const name = taskMap[x.taskId] || '';
+        const name = x.taskName || taskMap[x.taskId] || '-';
         const cls = x.status==='SUCCESS'? 'icon-success' : (x.status==='FAILED'? 'icon-failed' : (x.status==='PARTIAL'? 'icon-partial' : 'icon-running'));
         tr.innerHTML=`<td>${x.id}</td><td>${x.taskId}</td><td>${name}</td><td>${fmt(x.startTime)}</td><td>${fmt(x.endTime)}</td><td><span class='badge'><svg class='icon icon-sm ${cls}'><use href='#i-${x.status==='SUCCESS'?'success':x.status==='FAILED'?'failed':x.status==='PARTIAL'?'partial':'running'}'/></svg> ${x.status}</span></td><td>${x.totalItems||0}</td><td>${x.processedItems||0}</td><td>${x.failedItems||0}</td><td><button class='btn icon-btn' title='数据详情' data-id='${x.id}' data-act='details'><svg class='icon icon-md'><use href='#i-eye'/></svg></button></td><td><button class='btn icon-btn' title='操作日志' data-id='${x.id}' data-act='ops'><svg class='icon icon-md'><use href='#i-logs'/></svg></button></td>`;
         tbody.appendChild(tr);

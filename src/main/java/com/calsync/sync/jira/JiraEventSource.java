@@ -42,6 +42,7 @@ public class JiraEventSource {
                 JsonNode issues = root.path("issues");
                 if (issues.isArray()) {
                     for (JsonNode it : issues) {
+                        String key = it.path("key").asText(null);
                         JsonNode fields = it.path("fields");
                         String summary = fields.path("summary").asText(null);
                         String description = fields.path("description").isTextual() ? fields.path("description").asText() : null;
@@ -57,6 +58,17 @@ public class JiraEventSource {
                         Instant start = end.minus(Duration.ofHours(1));
                         EventSpec spec = new EventSpec(summary, start, end);
                         spec.description = description;
+                        spec.externalId = key;
+                        String created = fields.path("created").asText(null);
+                        String updated = fields.path("updated").asText(null);
+                        spec.createdAt = created != null ? Instant.parse(created) : null;
+                        spec.updatedAt = updated != null ? Instant.parse(updated) : null;
+                        spec.url = key != null ? (baseUrl + "/browse/" + key) : null;
+                        JsonNode pri = fields.path("priority").path("name");
+                        if (pri.isTextual()) {
+                            String p = pri.asText();
+                            spec.priority = "Highest".equalsIgnoreCase(p) ? 5 : ("High".equalsIgnoreCase(p) ? 4 : ("Medium".equalsIgnoreCase(p) ? 3 : ("Low".equalsIgnoreCase(p) ? 2 : 1)));
+                        }
                         out.add(spec);
                     }
                 }
