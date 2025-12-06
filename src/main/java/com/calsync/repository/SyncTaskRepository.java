@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface SyncTaskRepository extends JpaRepository<SyncTask, Long> {
     List<SyncTask> findByIsEnabledTrue();
+    List<SyncTask> findByIsDeletedFalse();
 }

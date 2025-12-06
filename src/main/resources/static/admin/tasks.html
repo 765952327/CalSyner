@@ -32,7 +32,7 @@
   <table id="tbl">
     <thead>
       <tr>
-        <th>ID</th><th>名称</th><th>启用</th><th>Jira配置</th><th>Radicate配置</th><th>Cron</th><th>JQL</th><th>描述</th><th>状态</th><th>操作</th>
+        <th>ID</th><th>名称</th><th>启用</th><th>同步源</th><th>同步目标</th><th>Cron</th><th>JQL</th><th>描述</th><th>状态</th><th>操作</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -40,38 +40,52 @@
   </div>
 
   <h3>新增任务</h3>
-  <div class="card">
+  <div class="section-card">
   <div class="row">
-    <div>
+    <div class="form-item">
       <label>任务名称</label>
       <input id="taskName">
     </div>
-    <div>
+  </div>
+  <div class="row">
+    <div class="form-item">
       <label>启用</label>
       <select id="isEnabled"><option value="true">true</option><option value="false">false</option></select>
     </div>
-    <div>
-      <label>Jira配置</label>
+  </div>
+  <div class="row">
+    <div class="form-item">
+      <label>同步源</label>
       <select id="jiraConfigId"></select>
     </div>
-    <div>
-      <label>Radicate配置</label>
+  </div>
+  <div class="row">
+    <div class="form-item">
+      <label>同步目标</label>
       <select id="radicateConfigId"></select>
     </div>
-    <div>
+  </div>
+  <div class="row">
+    <div class="form-item">
       <label>Cron表达式</label>
       <input id="cronExpression" placeholder="0 0/10 * * * ?">
     </div>
-    <div>
+  </div>
+  <div class="row">
+    <div class="form-item">
       <label>JQL表达式</label>
       <textarea id="jqlExpression" rows="4"></textarea>
     </div>
-    <div style="grid-column:1/span 2">
+  </div>
+  <div class="row">
+    <div class="form-item">
       <label>描述 / 字段映射(JSON)</label>
       <textarea id="description" rows="3" placeholder='[{"jiraField":"summary","radicateField":"summary"}]'></textarea>
     </div>
   </div>
-  <p><button class="btn" id="btnCreate">保存</button></p>
+  <div class="actions-bar">
+    <button class="btn" id="btnCreate">保存</button>
+  </div>
   </div>
   <div id="toast" class="toast"></div>
     </main>

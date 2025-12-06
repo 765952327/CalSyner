@@ -20,13 +20,14 @@ public class SyncTaskController {
     }
 
     @GetMapping
-    public List<SyncTask> list() { return repo.findAll(); }
+    public List<SyncTask> list() { return repo.findByIsDeletedFalse(); }
 
     @PostMapping
     public SyncTask create(@RequestBody SyncTask task) {
         task.setCreatedAt(Instant.now());
         task.setUpdatedAt(Instant.now());
         task.setSyncStatus("IDLE");
+        task.setIsDeleted(Boolean.FALSE);
         return repo.save(task);
     }
 
@@ -49,26 +50,36 @@ public class SyncTaskController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (!repo.existsById(id)) return ResponseEntity.notFound().build();
-        repo.deleteById(id);
-        return ResponseEntity.noContent().build();
+        java.util.Optional<SyncTask> opt = repo.findById(id);
+        if(opt.isPresent()){
+            SyncTask t = opt.get();
+            t.setIsDeleted(Boolean.TRUE);
+            t.setUpdatedAt(Instant.now());
+            repo.save(t);
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
     }
 
     @PostMapping("/{id}/execute")
     public ResponseEntity<Void> execute(@PathVariable Long id) {
-        if (!repo.existsById(id)) return ResponseEntity.notFound().build();
-        executor.executeTask(id);
-        return ResponseEntity.accepted().build();
+        java.util.Optional<SyncTask> opt = repo.findById(id).filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()));
+        if(opt.isPresent()){
+            executor.executeTask(id);
+            return ResponseEntity.accepted().build();
+        }
+        return ResponseEntity.notFound().build();
     }
 
     @PostMapping("/{id}/toggle")
     public ResponseEntity<SyncTask> toggle(@PathVariable Long id) {
-        return repo.findById(id)
-                .map(t -> {
-                    t.setIsEnabled(Boolean.TRUE.equals(t.getIsEnabled()) ? Boolean.FALSE : Boolean.TRUE);
-                    t.setUpdatedAt(Instant.now());
-                    return ResponseEntity.ok(repo.save(t));
-                })
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        java.util.Optional<SyncTask> opt = repo.findById(id).filter(t -> !Boolean.TRUE.equals(t.getIsDeleted()));
+        if(opt.isPresent()){
+            SyncTask t = opt.get();
+            t.setIsEnabled(Boolean.TRUE.equals(t.getIsEnabled()) ? Boolean.FALSE : Boolean.TRUE);
+            t.setUpdatedAt(Instant.now());
+            return ResponseEntity.ok(repo.save(t));
+        }
+        return ResponseEntity.notFound().build();
     }
 }

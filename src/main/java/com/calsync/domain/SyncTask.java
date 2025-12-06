@@ -23,6 +23,8 @@ public class SyncTask {
     private String cronExpression;
     @Column(name = "is_enabled")
     private Boolean isEnabled;
+    @Column(name = "is_deleted")
+    private Boolean isDeleted;
     @Column(name = "sync_status", length = 20)
     private String syncStatus;
     @Column(name = "last_sync_time")
@@ -52,6 +54,8 @@ public class SyncTask {
     public void setCronExpression(String cronExpression) { this.cronExpression = cronExpression; }
     public Boolean getIsEnabled() { return isEnabled; }
     public void setIsEnabled(Boolean isEnabled) { this.isEnabled = isEnabled; }
+    public Boolean getIsDeleted() { return isDeleted; }
+    public void setIsDeleted(Boolean isDeleted) { this.isDeleted = isDeleted; }
     public String getSyncStatus() { return syncStatus; }
     public void setSyncStatus(String syncStatus) { this.syncStatus = syncStatus; }
     public Instant getLastSyncTime() { return lastSyncTime; }
