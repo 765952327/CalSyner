@@ -15,6 +15,7 @@
       <symbol id="i-failed" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 8l8 8M16 8l-8 8" stroke="currentColor" stroke-width="2"/></symbol>
       <symbol id="i-partial" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M6 12h12" stroke="currentColor" stroke-width="2"/></symbol>
       <symbol id="i-running" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 16 L21 21" stroke="currentColor" stroke-width="2"/></symbol>
     </svg>
     <aside class="sidebar">
       <div class="brand"><span>JiraSync</span></div>
@@ -28,29 +29,18 @@
     <main>
   <header class="app"><h1>同步记录</h1></header>
 
-  <div class="section-card">
-    <h3>筛选条件</h3>
-    <div class="row">
-      <div class="form-item">
-        <label>任务ID</label>
-        <input id="taskId" placeholder="输入任务ID（可选）">
-        <div class="help">留空则查询全部任务</div>
-      </div>
-    </div>
-    <div class="row">
-      <div class="form-item">
-        <label>状态</label>
-        <select id="status">
-          <option value="">全部</option>
-          <option>SUCCESS</option>
-          <option>PARTIAL</option>
-          <option>FAILED</option>
-          <option>RUNNING</option>
-        </select>
-      </div>
-    </div>
-    <div class="actions-bar">
-      <button class="btn" id="btnLoad">筛选</button>
+  <div class="card filter">
+    <div class="toolbar filter-bar">
+      <input id="taskName" placeholder="任务名称（支持模糊）">
+      <select id="status">
+        <option value="">全部</option>
+        <option>SUCCESS</option>
+        <option>PARTIAL</option>
+        <option>FAILED</option>
+        <option>RUNNING</option>
+      </select>
+      <div class="spacer"></div>
+      <button class="btn" id="btnLoad"><svg class="icon icon-sm" viewBox="0 0 24 24"><use href="#i-search"/></svg> 筛选</button>
     </div>
   </div>
   <div class="card">
@@ -88,11 +78,14 @@
       taskMap = {}; tasks.forEach(t=>taskMap[t.id]=t.taskName||('任务 '+t.id));
     }
     function load(){
-      const tid=document.querySelector('#taskId').value.trim();
+      const name=(document.querySelector('#taskName').value||'').trim().toLowerCase();
       const st=document.querySelector('#status').value;
-      const url=tid?`${api}/task/${tid}`:api;
-      Promise.all([loadTasks(), fetch(url).then(r=>r.json())]).then(([_, list])=>{
+      Promise.all([loadTasks(), fetch(api).then(r=>r.json())]).then(([_, list])=>{
         if(st) list=list.filter(x=>x.status===st);
+        if(name) list=list.filter(x=>{
+          const n = (x.taskName || taskMap[x.taskId] || '').toLowerCase();
+          return n.includes(name);
+        });
         list.sort((a,b)=>new Date(b.startTime||0)-new Date(a.startTime||0));
         state.list=list; state.page=1; render();
       });

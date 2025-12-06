@@ -74,12 +74,37 @@ public class SyncRecordController {
     }
 
     @GetMapping("/{id}/ops")
-    public java.util.List<OperationLog> ops(@PathVariable Long id) {
-        return opRepo.findAll().stream().filter(o -> java.util.Objects.equals(o.getRecordId(), id))
+    public java.util.List<java.util.Map<String, Object>> ops(@PathVariable Long id,
+                                                             @RequestParam(required=false) String summary,
+                                                             @RequestParam(required=false) String opType,
+                                                             @RequestParam(required=false) String status) {
+        java.util.Map<Long, String> nameMap = new java.util.HashMap<>();
+        for (SyncTask t : taskRepo.findAll()) {
+            nameMap.put(t.getId(), t.getTaskName() != null ? t.getTaskName() : ("任务 " + t.getId()));
+        }
+        java.util.stream.Stream<OperationLog> s = opRepo.findAll().stream().filter(o -> java.util.Objects.equals(o.getRecordId(), id));
+        if (summary != null && !summary.isEmpty()) s = s.filter(x -> x.getSummary()!=null && x.getSummary().contains(summary));
+        if (opType != null && !opType.isEmpty()) s = s.filter(x -> opType.equals(x.getOpType()));
+        if (status != null && !status.isEmpty()) s = s.filter(x -> status.equals(x.getStatus()));
+        java.util.List<OperationLog> list = s
                 .sorted((a,b) -> {
                     long ta = a.getCreatedAt()==null?0:a.getCreatedAt().toEpochMilli();
                     long tb = b.getCreatedAt()==null?0:b.getCreatedAt().toEpochMilli();
                     return Long.compare(tb, ta);
                 }).collect(java.util.stream.Collectors.toList());
+        return list.stream().map(o -> {
+            java.util.Map<String, Object> m = new java.util.HashMap<>();
+            m.put("id", o.getId());
+            m.put("opType", o.getOpType());
+            m.put("summary", o.getSummary());
+            m.put("targetType", o.getTargetType());
+            m.put("status", o.getStatus());
+            m.put("message", o.getMessage());
+            m.put("recordId", o.getRecordId());
+            m.put("taskId", o.getTaskId());
+            m.put("taskName", nameMap.getOrDefault(o.getTaskId(), null));
+            m.put("createdAt", o.getCreatedAt());
+            return m;
+        }).collect(java.util.stream.Collectors.toList());
     }
 }

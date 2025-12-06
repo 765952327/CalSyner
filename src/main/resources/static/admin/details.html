@@ -13,6 +13,7 @@
       <symbol id="i-success" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 12l3 3 7-7" stroke="currentColor" stroke-width="2" fill="none"/></symbol>
       <symbol id="i-failed" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 8l8 8M16 8l-8 8" stroke="currentColor" stroke-width="2"/></symbol>
       <symbol id="i-skip" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 8h8v8H8z" stroke="currentColor" stroke-width="2" fill="none"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 16 L21 21" stroke="currentColor" stroke-width="2"/></symbol>
     </svg>
     <aside class="sidebar">
       <div class="brand"><span>JiraSync</span></div>
@@ -25,15 +26,17 @@
     </aside>
     <main>
   <header class="app"><h1>同步数据详情</h1></header>
-  <div>
-    <label>批次ID</label>
-    <input id="recId" placeholder="输入同步记录ID">
-    <button class="btn" id="btnLoad">加载</button>
+  <div class="card filter">
+    <div class="toolbar filter-bar">
+      <input id="recId" placeholder="批次ID">
+      <div class="spacer"></div>
+      <button class="btn" id="btnLoad" type="button"><svg class="icon icon-sm" viewBox="0 0 24 24"><use href="#i-search"/></svg> 加载</button>
+    </div>
   </div>
   <div class="grid cols-2">
     <div>
-      <h3>数据明细</h3>
       <div class="card">
+      <h3>数据明细</h3>
       <table id="tblDetails">
         <thead>
           <tr><th>ID</th><th>摘要</th><th>目标</th><th>状态</th><th>UID</th></tr>
@@ -81,7 +84,10 @@
         }
         list.forEach(d=>{
           const tr=document.createElement('tr');
-          tr.innerHTML=`<td>${d.id}</td><td>${d.itemSummary||d.itemId||''}</td><td>${d.targetType||''}</td><td>${d.status}</td><td>${d.radicateUid||''}</td>`;
+          const sIcon = d.status==='SUCCESS'? 'success' : (d.status==='FAILED'? 'failed' : 'skip');
+          const cls = d.status==='SUCCESS'? 'icon-success' : (d.status==='FAILED'? 'icon-failed' : 'icon-running');
+          const badgeCls = d.status==='SUCCESS'? 'badge success' : (d.status==='FAILED'? 'badge failed' : 'badge skip');
+          tr.innerHTML=`<td>${d.id}</td><td>${d.itemSummary||d.itemId||''}</td><td>${d.targetType||''}</td><td><span class='${badgeCls}'><svg class='icon icon-sm ${cls}'><use href='#i-${sIcon}'/></svg> ${d.status}</span></td><td>${d.radicateUid||''}</td>`;
           tr.onclick=()=>{document.querySelector('#payload').textContent=d.payload||'';};
           tbody.appendChild(tr);
         });
@@ -98,8 +104,9 @@
         list.forEach(o=>{
           const sIcon = o.status==='SUCCESS'? 'success' : (o.status==='FAILED'? 'failed' : 'skip');
           const cls = o.status==='SUCCESS'? 'icon-success' : (o.status==='FAILED'? 'icon-failed' : 'icon-running');
+          const badgeCls = o.status==='SUCCESS'? 'badge success' : (o.status==='FAILED'? 'badge failed' : 'badge skip');
           const tr=document.createElement('tr');
-          tr.innerHTML=`<td>${o.id}</td><td>${o.opType}</td><td>${o.summary||''}</td><td>${o.targetType||''}</td><td><span class='badge'><svg class='icon icon-sm ${cls}'><use href='#i-${sIcon}'/></svg> ${o.status}</span></td><td>${o.message||''}</td><td>${fmt(o.createdAt)||''}</td>`;
+          tr.innerHTML=`<td>${o.id}</td><td>${o.opType}</td><td>${o.summary||''}</td><td>${o.targetType||''}</td><td><span class='${badgeCls}'><svg class='icon icon-sm ${cls}'><use href='#i-${sIcon}'/></svg> ${o.status}</span></td><td>${o.message||''}</td><td>${fmt(o.createdAt)||''}</td>`;
           tbody.appendChild(tr);
         });
       });

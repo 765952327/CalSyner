@@ -29,6 +29,14 @@
         <p class="desc">类型：<span id="type">-</span>　状态：<span class="badge" id="status">UNKNOWN</span></p>
       </div>
 
+      <div class="section-card" id="webPreviewCard" style="display:none">
+        <div class="actions-bar">
+          <button class="btn-outline btn-lg" id="btnOpen">在新窗口打开</button>
+          <button class="btn-outline btn-lg" id="btnReload">刷新预览</button>
+        </div>
+        <iframe id="webFrame" class="web-frame" src="about:blank"></iframe>
+      </div>
+
       <div class="grid cols-auto">
         <div class="section-card">
           <h3>基本信息</h3>
@@ -161,6 +169,10 @@
         const isCustom = x.serviceType === 'CUSTOM';
         document.querySelector('#btnScript').disabled = !isCustom;
         document.querySelector('#btnScriptTest').disabled = !isCustom;
+        const preview = document.querySelector('#webPreviewCard');
+        const frame = document.querySelector('#webFrame');
+        if(x.baseUrl){ preview.style.display='block'; frame.src = x.baseUrl; }
+        else { preview.style.display='none'; frame.src='about:blank'; }
       }).catch(()=>{
         alert('未找到该服务配置');
         location.href='/admin/config.html';
@@ -183,6 +195,14 @@
       fetch(`${api}/${id}/test`,{method:'POST'})
         .then(r=>r.json()).then(x=>{toast(x.connectionStatus==='OK'?'连接成功':'连接失败');load();});
     };
+    document.querySelector('#btnOpen')?.addEventListener('click',()=>{
+      const url = document.querySelector('#webFrame').src;
+      if(url && url!=='about:blank') window.open(url, '_blank');
+    });
+    document.querySelector('#btnReload')?.addEventListener('click',()=>{
+      const frame = document.querySelector('#webFrame');
+      if(frame.src && frame.src!=='about:blank') frame.src = frame.src;
+    });
     document.querySelector('#btnScript').onclick=()=>{
       if(document.querySelector('#btnScript').disabled) return;
       const code = prompt('粘贴自定义Java脚本源码（类名需为 CustomUserScript）');
