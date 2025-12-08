@@ -1,8 +1,5 @@
 package com.calsync.sync;
 
-import com.calsync.domain.ServiceConfig;
-import com.calsync.domain.SyncTask;
-import com.calsync.web.dto.FieldMappingDTO;
 import java.util.List;
 
 /**
@@ -11,11 +8,9 @@ import java.util.List;
 public interface EventSource {
     /**
      * 拉取事件数据。
-     * @param srcCfg 源服务配置
-     * @param task 同步任务定义
-     * @param mappings 字段映射配置
+     * @param taskId 同步任务
      * @return 事件规范列表
      */
-    List<EventSpec> fetch(ServiceConfig srcCfg, SyncTask task, List<FieldMappingDTO> mappings);
+    List<EventSpec> fetch(Long taskId);
 }
 

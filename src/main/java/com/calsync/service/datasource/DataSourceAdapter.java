@@ -7,7 +7,7 @@ import com.calsync.sync.EventSpec;
 import java.util.List;
 
 /**
- * 统一数据源适配器接口：用于从不同源系统（Jira、自定义脚本等）拉取事件数据。
+ * 统一数据源适配器接口：用于从不同源系统（JiraManger、自定义脚本等）拉取事件数据。
  */
 public interface DataSourceAdapter {
     /**

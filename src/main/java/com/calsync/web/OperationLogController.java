@@ -100,7 +100,7 @@ public class OperationLogController {
                     l.setSummary(summary);
                     l.setTargetType("EVENT");
                     l.setStatus(ok ? "SUCCESS" : (exists ? "FAILED" : "SKIP"));
-                    l.setMessage(ok ? "Deleted" : (exists ? "Delete failed" : "Event not found"));
+                    l.setMessage(ok ? "Deleted" : (exists ? "Delete failed" : "EventMapper not found"));
                     l.setCreatedAt(Instant.now());
                     return repo.save(l);
                 });

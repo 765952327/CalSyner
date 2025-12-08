@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-Application<jirasync>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.calsync.Application",
+            "projectName": "jirasync",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

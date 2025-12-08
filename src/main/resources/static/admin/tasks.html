@@ -27,66 +27,30 @@
     <main>
   <header class="app"><h1>同步任务</h1></header>
 
-  <h3>现有任务</h3>
-  <div class="card">
+  <div class="hero">
+    <h3 class="title">同步任务</h3>
+    <p class="desc">管理任务的调度、同步源与目标映射；支持一键执行与启停。</p>
+  </div>
+  <div class="section-card">
+    <h3>现有任务</h3>
+    <div class="card filter">
+      <div class="toolbar filter-bar">
+        <input id="fTaskName" placeholder="任务名称（支持模糊）">
+        <div class="spacer"></div>
+        <a class="btn" href="/admin/task-create.html" id="btnNewTask">新增任务</a>
+      </div>
+    </div>
   <table id="tbl">
     <thead>
       <tr>
-        <th>ID</th><th>名称</th><th>启用</th><th>同步源</th><th>同步目标</th><th>Cron</th><th>JQL</th><th>描述</th><th>状态</th><th>操作</th>
+        <th>ID</th><th>名称</th><th>启用</th><th>同步源</th><th>同步目标</th><th>Cron</th><th>JQL</th><th>描述</th><th>状态</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
   </div>
 
-  <h3>新增任务</h3>
-  <div class="section-card">
-  <div class="row">
-    <div class="form-item">
-      <label>任务名称</label>
-      <input id="taskName">
-    </div>
-  </div>
-  <div class="row">
-    <div class="form-item">
-      <label>启用</label>
-      <select id="isEnabled"><option value="true">true</option><option value="false">false</option></select>
-    </div>
-  </div>
-  <div class="row">
-    <div class="form-item">
-      <label>同步源</label>
-      <select id="jiraConfigId"></select>
-    </div>
-  </div>
-  <div class="row">
-    <div class="form-item">
-      <label>同步目标</label>
-      <select id="radicateConfigId"></select>
-    </div>
-  </div>
-  <div class="row">
-    <div class="form-item">
-      <label>Cron表达式</label>
-      <input id="cronExpression" placeholder="0 0/10 * * * ?">
-    </div>
-  </div>
-  <div class="row">
-    <div class="form-item">
-      <label>JQL表达式</label>
-      <textarea id="jqlExpression" rows="4"></textarea>
-    </div>
-  </div>
-  <div class="row">
-    <div class="form-item">
-      <label>描述 / 字段映射(JSON)</label>
-      <textarea id="description" rows="3" placeholder='[{"jiraField":"summary","radicateField":"summary"}]'></textarea>
-    </div>
-  </div>
-  <div class="actions-bar">
-    <button class="btn" id="btnCreate">保存</button>
-  </div>
-  </div>
+  
   <div id="toast" class="toast"></div>
     </main>
   </div>
@@ -100,116 +64,41 @@
     })();
     const tbody=document.querySelector('#tbl tbody');
     let jiraOptions=[]; let radicateOptions=[];
-    function fillConfigSelects() {
-      const jSel=document.querySelector('#jiraConfigId');
-      const rSel=document.querySelector('#radicateConfigId');
-      jSel.innerHTML='<option value="">未选择</option>' + jiraOptions.map(x=>`<option value="${x.id}">${x.serviceName||('JIRA '+x.id)}</option>`).join('');
-      rSel.innerHTML='<option value="">未选择</option>' + radicateOptions.map(x=>`<option value="${x.id}">${x.serviceName||('RADICATE '+x.id)}</option>`).join('');
-    }
     function loadConfigs(){
       return fetch('/api/config/services').then(r=>r.json()).then(list=>{
         jiraOptions=list.filter(x=>x.serviceType==='JIRA');
         radicateOptions=list.filter(x=>x.serviceType==='RADICATE');
-        fillConfigSelects();
       });
     }
     function load(){
       Promise.all([loadConfigs(), fetch(api).then(r=>r.json())]).then(([_, list])=>{
+        const qName=(document.querySelector('#fTaskName')?.value||'').trim();
+        if(qName){ list=list.filter(x=>((x.taskName||'').indexOf(qName)>-1)); }
         tbody.innerHTML='';
         list.forEach(x=>{
           const tr=document.createElement('tr');
-          const jSelOpts = '<option value="">未选择</option>' + jiraOptions.map(o=>`<option value='${o.id}' ${x.jiraConfigId===o.id?"selected":""}>${o.serviceName||('JIRA '+o.id)}</option>`).join('');
-          const rSelOpts = '<option value="">未选择</option>' + radicateOptions.map(o=>`<option value='${o.id}' ${x.radicateConfigId===o.id?"selected":""}>${o.serviceName||('RADICATE '+o.id)}</option>`).join('');
+          const jName = (jiraOptions.find(o=>o.id===x.jiraConfigId)?.serviceName) || (x.jiraConfigId?('JIRA '+x.jiraConfigId):'-');
+          const rName = (radicateOptions.find(o=>o.id===x.radicateConfigId)?.serviceName) || (x.radicateConfigId?('RADICATE '+x.radicateConfigId):'-');
           tr.innerHTML=`<td>${x.id}</td>
-          <td><span data-t='taskName'>${x.taskName||'-'}</span><input data-k='taskName' value='${x.taskName||''}' disabled style='display:none'></td>
-          <td><select data-k='isEnabled' disabled><option value='true' ${x.isEnabled?'selected':''}>true</option><option value='false' ${!x.isEnabled?'selected':''}>false</option></select></td>
-          <td><select data-k='jiraConfigId' disabled>${jSelOpts}</select> <span class='badge' data-k='jiraStatus'></span></td>
-          <td><select data-k='radicateConfigId' disabled>${rSelOpts}</select> <span class='badge' data-k='radicateStatus'></span></td>
-          <td><input data-k='cronExpression' value='${x.cronExpression||''}' disabled> <span class='badge' data-k='cronStatus'></span></td>
-          <td><textarea data-k='jqlExpression' rows='3' disabled>${x.jqlExpression||''}</textarea></td>
-          <td><textarea data-k='description' rows='2' disabled>${x.description||''}</textarea></td>
-          <td><span class='badge'>${x.syncStatus||''}</span></td>
-          <td class='ops'>
-            <button class='btn-outline icon-btn' title='编辑' data-act='edit' data-id='${x.id}'><svg class='icon icon-md'><use href='#i-edit'/></svg></button>
-            <button class='btn-outline icon-btn' title='保存' data-act='save' data-id='${x.id}' disabled><svg class='icon icon-md'><use href='#i-save'/></svg></button>
-            <button class='btn-outline icon-btn' title='执行' data-act='exec' data-id='${x.id}'><svg class='icon icon-md'><use href='#i-play'/></svg></button>
-            <button class='btn-outline icon-btn' title='启停' data-act='toggle' data-id='${x.id}'><svg class='icon icon-md'><use href='#i-power'/></svg></button>
-            <button class='btn-outline icon-btn btn-danger' title='删除' data-act='del' data-id='${x.id}'><svg class='icon icon-md'><use href='#i-trash'/></svg></button>
-          </td>`;
+          <td>${x.taskName||'-'}</td>
+          <td>${x.isEnabled?'true':'false'}</td>
+          <td>${jName}</td>
+          <td>${rName}</td>
+          <td>${x.cronExpression||''}</td>
+          <td>${x.jqlExpression||''}</td>
+          <td>${x.description||''}</td>
+          <td><span class='badge'>${x.syncStatus||''}</span></td>`;
+          tr.style.cursor='pointer';
+          tr.onclick=()=>{ location.href='/admin/task.html?id='+x.id; };
           tbody.appendChild(tr);
         });
-        bindOps();
       });
     }
     function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1600)}
-    function bindOps(){
-      document.querySelectorAll('.btn-outline').forEach(b=>{
-        b.onclick=(e)=>{
-          e.preventDefault();
-          const id=b.dataset.id;
-          const act=b.dataset.act;
-          const go=async()=>{
-            try{
-              if(act==='edit'){
-                const tr=b.closest('tr'); tr.querySelectorAll('input,select,textarea').forEach(el=>el.disabled=false);
-                const nameSpan=tr.querySelector("[data-t='taskName']"); const nameInput=tr.querySelector("[data-k='taskName']");
-                if(nameSpan&&nameInput){ nameSpan.style.display='none'; nameInput.style.display=''; }
-                tr.querySelector("[data-act='save']").disabled=false;
-                const jSel=tr.querySelector("[data-k='jiraConfigId']");
-                const rSel=tr.querySelector("[data-k='radicateConfigId']");
-                const jStatus=tr.querySelector("[data-k='jiraStatus']");
-                const rStatus=tr.querySelector("[data-k='radicateStatus']");
-                const cronInput=tr.querySelector("[data-k='cronExpression']");
-                const cronStatus=tr.querySelector("[data-k='cronStatus']");
-                function findCfg(id, list){ const v=parseInt(id||'0'); return list.find(x=>x.id===v); }
-                function updateJ(){ const cfg=findCfg(jSel.value, jiraOptions); jStatus.textContent=cfg? (cfg.connectionStatus||'') : ''; }
-                function updateR(){ const cfg=findCfg(rSel.value, radicateOptions); rStatus.textContent=cfg? (cfg.connectionStatus||'') : ''; }
-                function validCron(s){ const parts=(s||'').trim().split(/\s+/); return parts.length===6 || parts.length===7; }
-                function updateCron(){ const ok=validCron(cronInput.value); cronStatus.textContent= ok ? '合法' : '不合法'; tr.querySelector("[data-act='save']").disabled=!ok; }
-                jSel.onchange=updateJ; rSel.onchange=updateR; cronInput.oninput=updateCron; updateJ(); updateR(); updateCron();
-              }
-              if(act==='save'){
-                const tr=b.closest('tr');
-                const get=k=>tr.querySelector(`[data-k='${k}']`).value;
-                const body={
-                  taskName:get('taskName'),
-                  isEnabled:get('isEnabled')==='true',
-                  jiraConfigId: parseInt(get('jiraConfigId')||'0')||null,
-                  radicateConfigId: parseInt(get('radicateConfigId')||'0')||null,
-                  cronExpression:get('cronExpression'),
-                  jqlExpression: tr.querySelector("[data-k='jqlExpression']").value,
-                  description: tr.querySelector("[data-k='description']").value
-                };
-                const okCron = ((body.cronExpression||'').trim().split(/\s+/).length===6) || ((body.cronExpression||'').trim().split(/\s+/).length===7);
-                if(!okCron){ alert('Cron表达式不合法：需6或7段'); return; }
-                await fetch(`${api}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-                toast('已保存');
-              }
-              if(act==='exec'){await fetch(`${api}/${id}/execute`,{method:'POST'});toast('已触发执行');}
-              if(act==='toggle'){await fetch(`${api}/${id}/toggle`,{method:'POST'});toast('已切换启用');}
-              if(act==='del'){await fetch(`${api}/${id}`,{method:'DELETE'});toast('已删除');}
-              load();
-            }catch(err){
-              alert('操作失败: '+err);
-            }
-          };
-          go();
-        };
-      });
-    }
+    document.querySelector('#fTaskName')?.addEventListener('input',()=>{ load(); });
+    
     load();
-    document.querySelector('#btnCreate').onclick=()=>{
-      const body={
-        taskName:document.querySelector('#taskName').value,
-        isEnabled:document.querySelector('#isEnabled').value==='true',
-        jiraConfigId:parseInt(document.querySelector('#jiraConfigId').value||'0')||null,
-        radicateConfigId:parseInt(document.querySelector('#radicateConfigId').value||'0')||null,
-        cronExpression:document.querySelector('#cronExpression').value,
-        jqlExpression:document.querySelector('#jqlExpression').value,
-        description:document.querySelector('#description').value
-      };
-      fetch(api,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(()=>load());
-    };
+    
   </script>
 </body>
 </html>

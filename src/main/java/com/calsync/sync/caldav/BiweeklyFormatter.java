@@ -12,16 +12,16 @@ public class BiweeklyFormatter {
         ICalendar cal = new ICalendar();
         VEvent ev = new VEvent();
         if (uid != null) ev.setUid(uid);
-        if (spec.summary != null) ev.setSummary(spec.summary);
-        if (spec.description != null) ev.setDescription(spec.description);
-        if (!spec.allDay) {
-            if (spec.start != null) ev.setDateStart(Date.from(spec.start));
-            if (spec.end != null) ev.setDateEnd(Date.from(spec.end));
+        if (spec.getSummary() != null) ev.setSummary(spec.getSummary());
+        if (spec.getDescription() != null) ev.setDescription(spec.getDescription());
+        if (!spec.isAllDay()) {
+            if (spec.getStart() != null) ev.setDateStart(Date.from(spec.getStart()));
+            if (spec.getEnd() != null) ev.setDateEnd(Date.from(spec.getEnd()));
         } else {
-            if (spec.start != null) ev.setDateStart(Date.from(spec.start), false);
-            if (spec.end != null) ev.setDateEnd(Date.from(spec.end), false);
+            if (spec.getStart() != null) ev.setDateStart(Date.from(spec.getStart()), false);
+            if (spec.getEnd() != null) ev.setDateEnd(Date.from(spec.getEnd()), false);
         }
-        if (spec.location != null) ev.setLocation(spec.location);
+        if (spec.getLocation() != null) ev.setLocation(spec.getLocation());
         cal.addEvent(ev);
         return Biweekly.write(cal).go();
     }
@@ -30,8 +30,8 @@ public class BiweeklyFormatter {
         ICalendar cal = new ICalendar();
         VTodo td = new VTodo();
         if (uid != null) td.setUid(uid);
-        if (spec.summary != null) td.setSummary(spec.summary);
-        if (spec.description != null) td.setDescription(spec.description);
+        if (spec.getSummary() != null) td.setSummary(spec.getSummary());
+        if (spec.getDescription() != null) td.setDescription(spec.getDescription());
         cal.addTodo(td);
         return Biweekly.write(cal).go();
     }

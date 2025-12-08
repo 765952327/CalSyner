@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>新增任务</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body class="container">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand"><span>JiraSync</span></div>
+      <nav class="side-nav">
+        <a href="/admin/index.html" title="首页"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M3 10 L12 3 L21 10 V21 H3 Z" fill="currentColor"/></svg></span><span class="side-label">首页</span></a>
+        <a href="/admin/config.html" title="服务配置"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 2 L19 7 L19 17 L12 22 L5 17 L5 7 Z" fill="currentColor"/></svg></span><span class="side-label">服务配置</span></a>
+        <a href="/admin/tasks.html" title="同步任务" class="active"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 12 L10 15 L17 8" stroke="currentColor" stroke-width="2" fill="none"/></svg></span><span class="side-label">同步任务</span></a>
+        <a href="/admin/records.html" title="同步记录"><span class="side-icon"><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7 L12 12 L16 14" stroke="currentColor" stroke-width="2"/></svg></span><span class="side-label">同步记录</span></a>
+      </nav>
+    </aside>
+    <main>
+      <header class="app"><h1>新增任务</h1><nav class="app"><a href="/admin/tasks.html">返回列表</a></nav></header>
+      <div class="hero">
+        <h3 class="title">创建同步任务</h3>
+        <p class="desc">填写任务名称、选择同步源与目标、配置调度与筛选。</p>
+      </div>
+
+      <div class="section-card">
+        <h3>任务信息</h3>
+        <div class="row">
+          <div class="form-item">
+            <label>任务名称</label>
+            <input id="taskName" placeholder="例如：需求到日程同步">
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-item">
+            <label>启用</label>
+            <select id="isEnabled"><option value="true">true</option><option value="false">false</option></select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-item">
+            <label>同步源（JIRA）</label>
+            <select id="jiraConfigId"><option value="">未选择</option></select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-item">
+            <label>同步目标（RADICATE）</label>
+            <select id="radicateConfigId"><option value="">未选择</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <h3>调度与筛选</h3>
+        <div class="row">
+          <div class="form-item">
+            <label>Cron表达式</label>
+            <input id="cronExpression" placeholder="0 0/10 * * * ?">
+            <div class="help">需 6 或 7 段表达式</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="form-item">
+            <label>JQL表达式</label>
+            <textarea id="jqlExpression" rows="4" placeholder="project=ABC AND status=Open"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <h3>字段映射</h3>
+        <div class="row">
+          <div class="form-item">
+            <label>描述 / 字段映射(JSON)</label>
+            <textarea id="description" rows="4" placeholder='[{"jiraField":"summary","radicateField":"summary"}]'></textarea>
+          </div>
+        </div>
+        <div class="actions-bar">
+          <button class="btn btn-lg" id="btnCreate">保存并返回</button>
+        </div>
+      </div>
+
+      <div id="toast" class="toast"></div>
+    </main>
+  </div>
+
+  <script>
+    const api='/api/sync/tasks';
+    function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1600)}
+    let jiraOptions=[]; let radicateOptions=[];
+    function loadConfigs(){
+      return fetch('/api/config/services').then(r=>r.json()).then(list=>{
+        jiraOptions=list.filter(x=>x.serviceType==='JIRA');
+        radicateOptions=list.filter(x=>x.serviceType==='RADICATE');
+        const jSel=document.querySelector('#jiraConfigId');
+        const rSel=document.querySelector('#radicateConfigId');
+        jSel.innerHTML='<option value="">未选择</option>' + jiraOptions.map(x=>`<option value="${x.id}">${x.serviceName||('JIRA '+x.id)}</option>`).join('');
+        rSel.innerHTML='<option value="">未选择</option>' + radicateOptions.map(x=>`<option value="${x.id}">${x.serviceName||('RADICATE '+x.id)}</option>`).join('');
+      });
+    }
+    loadConfigs();
+    document.querySelector('#btnCreate').onclick=async()=>{
+      const body={
+        taskName:document.querySelector('#taskName').value,
+        isEnabled:document.querySelector('#isEnabled').value==='true',
+        jiraConfigId:parseInt(document.querySelector('#jiraConfigId').value||'0')||null,
+        radicateConfigId:parseInt(document.querySelector('#radicateConfigId').value||'0')||null,
+        cronExpression:document.querySelector('#cronExpression').value,
+        jqlExpression:document.querySelector('#jqlExpression').value,
+        description:document.querySelector('#description').value
+      };
+      const okCron = ((body.cronExpression||'').trim().split(/\s+/).length===6) || ((body.cronExpression||'').trim().split(/\s+/).length===7);
+      if(!okCron){ toast('Cron表达式不合法'); return; }
+      try{
+        const r = await fetch(api,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        if(!r.ok){ toast('保存失败'); return; }
+        toast('已创建'); setTimeout(()=>{ location.href='/admin/tasks.html'; }, 200);
+      }catch(e){ toast('保存失败'); }
+    };
+  </script>
+</body>
+</html>
+

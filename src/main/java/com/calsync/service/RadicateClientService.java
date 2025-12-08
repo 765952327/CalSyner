@@ -35,7 +35,7 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
 
     public void upsertEvents(List<EventSpec> specs) {
         Set<String> desired = new HashSet<>();
-        for (EventSpec s : specs) desired.add(s.summary);
+        for (EventSpec s : specs) desired.add(s.getSummary());
         List<String> existing = publisher.listSummaries();
         for (String ex : existing) {
             if (!desired.contains(ex)) publisher.deleteBySummary(ex);
@@ -43,9 +43,9 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
         for (EventSpec spec : specs) {
             String uid = UUID.randomUUID().toString();
             String ics = formatter.format(spec, uid);
-            publisher.replaceBySummary(ics, uid, spec.summary);
+            publisher.replaceBySummary(ics, uid, spec.getSummary());
             String todoIcs = formatter.formatTodo(spec, uid + "-todo");
-            publisher.replaceTodoBySummary(todoIcs, uid + "-todo", spec.summary);
+            publisher.replaceTodoBySummary(todoIcs, uid + "-todo", spec.getSummary());
         }
     }
 
@@ -67,7 +67,7 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
     public List<RadicateSyncResult> upsertAndCollect(List<EventSpec> specs, Long recordId, Long taskId) {
         List<RadicateSyncResult> out = new ArrayList<>();
         Set<String> desired = new HashSet<>();
-        for (EventSpec s : specs) desired.add(s.summary);
+        for (EventSpec s : specs) desired.add(s.getSummary());
         List<String> existing = publisher.listSummaries();
         for (String ex : existing) {
             if (!desired.contains(ex)) publisher.deleteBySummary(ex);
@@ -75,13 +75,13 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
         for (EventSpec spec : specs) {
             String uid = UUID.randomUUID().toString();
             String ics = formatter.format(spec, uid);
-            String prevEventIcs = publisher.getEventIcsBySummary(spec.summary);
+            String prevEventIcs = publisher.getEventIcsBySummary(spec.getSummary());
             boolean existedEvent = prevEventIcs != null;
             boolean changedEvent = !existedEvent || !publisher.normalize(prevEventIcs).equals(publisher.normalize(ics));
             if (changedEvent) {
-                int code = publisher.replaceBySummary(ics, uid, spec.summary);
+                int code = publisher.replaceBySummary(ics, uid, spec.getSummary());
                 RadicateSyncResult ev = new RadicateSyncResult();
-                ev.setSummary(spec.summary);
+                ev.setSummary(spec.getSummary());
                 ev.setUid(uid);
                 ev.setCode(code);
                 ev.setPayload(ics);
@@ -90,7 +90,7 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
 
                 OperationLog logEv = new OperationLog();
                 logEv.setOpType(existedEvent ? "UPDATE_EVENT" : "CREATE_EVENT");
-                logEv.setSummary(spec.summary);
+                logEv.setSummary(spec.getSummary());
                 logEv.setTargetType("EVENT");
                 logEv.setRadicateUid(uid);
                 logEv.setStatus(code >= 200 && code < 300 ? "SUCCESS" : "FAILED");
@@ -103,13 +103,13 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
 
             String todoUid = uid + "-todo";
             String todoIcs = formatter.formatTodo(spec, todoUid);
-            String prevTodoIcs = publisher.getTodoIcsBySummary(spec.summary);
+            String prevTodoIcs = publisher.getTodoIcsBySummary(spec.getSummary());
             boolean existedTodo = prevTodoIcs != null;
             boolean changedTodo = !existedTodo || !publisher.normalize(prevTodoIcs).equals(publisher.normalize(todoIcs));
             if (changedTodo) {
-                int todoCode = publisher.replaceTodoBySummary(todoIcs, todoUid, spec.summary);
+                int todoCode = publisher.replaceTodoBySummary(todoIcs, todoUid, spec.getSummary());
                 RadicateSyncResult td = new RadicateSyncResult();
-                td.setSummary(spec.summary);
+                td.setSummary(spec.getSummary());
                 td.setUid(todoUid);
                 td.setCode(todoCode);
                 td.setPayload(todoIcs);
@@ -118,7 +118,7 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
 
                 OperationLog logTd = new OperationLog();
                 logTd.setOpType(existedTodo ? "UPDATE_TODO" : "CREATE_TODO");
-                logTd.setSummary(spec.summary);
+                logTd.setSummary(spec.getSummary());
                 logTd.setTargetType("TODO");
                 logTd.setRadicateUid(todoUid);
                 logTd.setStatus(todoCode >= 200 && todoCode < 300 ? "SUCCESS" : "FAILED");
@@ -139,7 +139,7 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
         String pass = cfg != null ? cfg.getPassword() : CalDavConfig.RADICALE_PASSWORD;
         List<RadicateSyncResult> out = new ArrayList<>();
         Set<String> desired = new HashSet<>();
-        for (EventSpec s : specs) desired.add(s.summary);
+        for (EventSpec s : specs) desired.add(s.getSummary());
         List<String> existing = publisher.listSummaries(base, user, pass);
         for (String ex : existing) {
             if (!desired.contains(ex)) publisher.deleteBySummary(ex, base, user, pass);
@@ -147,13 +147,13 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
         for (EventSpec spec : specs) {
             String uid = java.util.UUID.randomUUID().toString();
             String ics = formatter.format(spec, uid);
-            String prevEventIcs = publisher.getEventIcsBySummary(spec.summary, base, user, pass);
+            String prevEventIcs = publisher.getEventIcsBySummary(spec.getSummary(), base, user, pass);
             boolean existedEvent = prevEventIcs != null;
             boolean changedEvent = !existedEvent || !publisher.normalize(prevEventIcs).equals(publisher.normalize(ics));
             if (changedEvent) {
-                int code = publisher.replaceBySummary(ics, uid, spec.summary, base, user, pass);
+                int code = publisher.replaceBySummary(ics, uid, spec.getSummary(), base, user, pass);
                 RadicateSyncResult ev = new RadicateSyncResult();
-                ev.setSummary(spec.summary);
+                ev.setSummary(spec.getSummary());
                 ev.setUid(uid);
                 ev.setCode(code);
                 ev.setPayload(ics);
@@ -162,7 +162,7 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
 
                 OperationLog logEv = new OperationLog();
                 logEv.setOpType(existedEvent ? "UPDATE_EVENT" : "CREATE_EVENT");
-                logEv.setSummary(spec.summary);
+                logEv.setSummary(spec.getSummary());
                 logEv.setTargetType("EVENT");
                 logEv.setRadicateUid(uid);
                 logEv.setStatus(code >= 200 && code < 300 ? "SUCCESS" : "FAILED");
@@ -175,13 +175,13 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
 
             String todoUid = uid + "-todo";
             String todoIcs = formatter.formatTodo(spec, todoUid);
-            String prevTodoIcs = publisher.getTodoIcsBySummary(spec.summary, base, user, pass);
+            String prevTodoIcs = publisher.getTodoIcsBySummary(spec.getSummary(), base, user, pass);
             boolean existedTodo = prevTodoIcs != null;
             boolean changedTodo = !existedTodo || !publisher.normalize(prevTodoIcs).equals(publisher.normalize(todoIcs));
             if (changedTodo) {
-                int todoCode = publisher.replaceTodoBySummary(todoIcs, todoUid, spec.summary, base, user, pass);
+                int todoCode = publisher.replaceTodoBySummary(todoIcs, todoUid, spec.getSummary(), base, user, pass);
                 RadicateSyncResult td = new RadicateSyncResult();
-                td.setSummary(spec.summary);
+                td.setSummary(spec.getSummary());
                 td.setUid(todoUid);
                 td.setCode(todoCode);
                 td.setPayload(todoIcs);
@@ -190,7 +190,7 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
 
                 OperationLog logTd = new OperationLog();
                 logTd.setOpType(existedTodo ? "UPDATE_TODO" : "CREATE_TODO");
-                logTd.setSummary(spec.summary);
+                logTd.setSummary(spec.getSummary());
                 logTd.setTargetType("TODO");
                 logTd.setRadicateUid(todoUid);
                 logTd.setStatus(todoCode >= 200 && todoCode < 300 ? "SUCCESS" : "FAILED");

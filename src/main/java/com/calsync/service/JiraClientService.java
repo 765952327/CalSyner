@@ -1,15 +1,16 @@
 package com.calsync.service;
 
-import com.calsync.sync.jira.JiraEventSource;
+import com.calsync.repository.ServiceConfigRepository;
+import com.calsync.sync.jira.JiraManger;
 import com.calsync.sync.EventSpec;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
 @Service
 public class JiraClientService {
-    private final com.calsync.repository.ServiceConfigRepository serviceConfigs;
+    private final ServiceConfigRepository serviceConfigs;
 
-    public JiraClientService(com.calsync.repository.ServiceConfigRepository serviceConfigs) {
+    public JiraClientService(ServiceConfigRepository serviceConfigs) {
         this.serviceConfigs = serviceConfigs;
     }
 
@@ -23,6 +24,6 @@ public class JiraClientService {
         String baseUrl = cfg != null ? cfg.getBaseUrl() : System.getenv().getOrDefault("JIRA_BASE_URL", "");
         String email = cfg != null ? cfg.getUsername() : System.getenv().getOrDefault("JIRA_EMAIL", "");
         String token = cfg != null ? cfg.getApiToken() : System.getenv().getOrDefault("JIRA_API_TOKEN", "");
-        return new JiraEventSource().fetch(baseUrl, email, token, jql);
+        return new JiraManger().fetch(baseUrl, email, token, jql);
     }
 }

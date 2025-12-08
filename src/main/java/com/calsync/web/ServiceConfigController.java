@@ -108,7 +108,7 @@ public class ServiceConfigController {
             java.util.List<EventSpec> specs = adapter.fetch(cfg, fake, mappings);
             java.util.Map<String, Object> result = new java.util.HashMap<>();
             result.put("count", specs.size());
-            result.put("sample", specs.isEmpty() ? null : specs.get(0).summary);
+            result.put("sample", specs.isEmpty() ? null : specs.get(0).getSummary());
             return ResponseEntity.ok(result);
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
