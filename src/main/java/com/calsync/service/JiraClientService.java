@@ -24,6 +24,6 @@ public class JiraClientService {
         String baseUrl = cfg != null ? cfg.getBaseUrl() : System.getenv().getOrDefault("JIRA_BASE_URL", "");
         String email = cfg != null ? cfg.getUsername() : System.getenv().getOrDefault("JIRA_EMAIL", "");
         String token = cfg != null ? cfg.getApiToken() : System.getenv().getOrDefault("JIRA_API_TOKEN", "");
-        return new JiraManger().fetch(baseUrl, email, token, jql);
+//        return new JiraManger().fetch(baseUrl, email, token, jql);
     }
 }

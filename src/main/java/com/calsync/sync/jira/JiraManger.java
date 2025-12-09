@@ -14,8 +14,6 @@ import java.util.Map;
 import net.rcarz.jiraclient.BasicCredentials;
 import net.rcarz.jiraclient.JiraClient;
 import net.rcarz.jiraclient.JiraException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -23,16 +21,15 @@ import org.springframework.stereotype.Component;
  * JiraManger
  */
 @Component
-public class JiraManger implements EventSource, ParamsSource {
+public class JiraManger implements EventSource, ParamsSource<JiraParam> {
     private static final Map<Long, JiraClientWrap> clientMap = new HashMap<>();
-    private static final Logger log = LoggerFactory.getLogger(JiraManger.class);
     @Autowired
     private SyncTaskService syncTaskService;
     @Autowired
     private ServiceConfigService serviceConfigService;
     
     
-    private JiraClientWrap getClient(Long id) {
+    private JiraClientWrap getClient(Long id) throws JiraException {
         SyncTask task = syncTaskService.getTask(id);
         if (task == null) {
             return null;
@@ -81,7 +78,7 @@ public class JiraManger implements EventSource, ParamsSource {
             if (client == null) {
                 throw new JiraException("no client");
             }
-            return client.getAllFields();
+            return client.getParams();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

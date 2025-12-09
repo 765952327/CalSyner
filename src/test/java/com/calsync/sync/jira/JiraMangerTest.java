@@ -21,6 +21,5 @@ class JiraMangerTest {
     @Test
     void fetch() throws JiraException {
         SyncTask task = syncTaskService.getTask(3L);
-        List<JiraParam> params = jiraManger.getAllFields(task);
     }
 }

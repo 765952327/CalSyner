@@ -1,2 +1,8 @@
-package com.calsync.domain;public enum ServiceType {
+package com.calsync.domain;
+
+public enum ServiceType {
+    JIRA,
+    RADICALE,
+    CUSTOM,
+    ;
 }

@@ -3,25 +3,40 @@ package com.calsync.sync.jira;
 import cn.hutool.core.lang.TypeReference;
 import cn.hutool.json.JSONUtil;
 import java.net.URI;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import lombok.Data;
 import net.rcarz.jiraclient.Issue;
 import net.rcarz.jiraclient.JiraClient;
 import net.rcarz.jiraclient.JiraException;
 import net.rcarz.jiraclient.Resource;
 import net.rcarz.jiraclient.RestClient;
 import net.sf.json.JSON;
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
 
+@Data
 public class JiraClientWrap {
     private JiraClient jiraClient;
     private RestClient restclient;
+    private Map<String,JiraParam> paramsMap;
     
-    public JiraClientWrap(JiraClient jiraClient) {
+    public JiraClientWrap(JiraClient jiraClient) throws JiraException {
         this.jiraClient = jiraClient;
         this.restclient = jiraClient.getRestClient();
+        List<JiraParam> params = getAllFields();
+        if (params != null) {
+            params.forEach(param -> {
+                paramsMap.put(param.getId(), param);
+            });
+        }
+    }
+    
+    public List<JiraParam> getParams() {
+        return new ArrayList<>(paramsMap.values());
+    }
+    
+    public JiraParam getParam(String paramId) {
+        return paramsMap.get(paramId);
     }
     
     public IssuesWrap searchIssues(String jql)

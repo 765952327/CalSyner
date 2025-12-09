@@ -18,10 +18,10 @@ public class JiraDataSourceAdapter implements DataSourceAdapter {
         String base = srcCfg != null ? srcCfg.getBaseUrl() : System.getenv().getOrDefault("JIRA_BASE_URL", "");
         String email = srcCfg != null ? srcCfg.getUsername() : System.getenv().getOrDefault("JIRA_EMAIL", "");
         String token = srcCfg != null ? srcCfg.getApiToken() : System.getenv().getOrDefault("JIRA_API_TOKEN", "");
-        List<EventSpec> specs = new JiraManger().fetch(base, email, token, task.getJqlExpression());
-        if (specs == null) specs = new ArrayList<>();
-        if (mappings == null || mappings.isEmpty()) return specs;
-        for (EventSpec s : specs) FieldMapper.apply(s, mappings);
-        return specs;
+//        List<EventSpec> specs = new JiraManger().fetch(base, email, token, task.getJqlExpression());
+//        if (specs == null) specs = new ArrayList<>();
+//        if (mappings == null || mappings.isEmpty()) return specs;
+//        for (EventSpec s : specs) FieldMapper.apply(s, mappings);
+//        return specs;
     }
 }

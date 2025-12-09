@@ -1,5 +1,6 @@
 package com.calsync.sync.jira;
 
+import com.calsync.sync.Param;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,7 +8,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class JiraParam {
+public class JiraParam implements Param {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -25,4 +26,14 @@ public class JiraParam {
     private Boolean searchable;
     private String[] clauseNames;
     private Schema schema;
+    
+    @Override
+    public String getKey() {
+        return id;
+    }
+    
+    @Override
+    public String getAlias() {
+        return name;
+    }
 }
