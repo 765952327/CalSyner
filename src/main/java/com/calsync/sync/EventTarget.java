@@ -1,2 +1,7 @@
-package com.calsync.sync;public interface EventTarget {
+package com.calsync.sync;
+
+import java.util.List;
+
+public interface EventTarget {
+    void push(List<Event> events);
 }

@@ -2,8 +2,8 @@ package com.calsync.service.datasource;
 
 import com.calsync.domain.ServiceConfig;
 import com.calsync.domain.SyncTask;
+import com.calsync.sync.Event;
 import com.calsync.web.dto.FieldMappingDTO;
-import com.calsync.sync.EventSpec;
 import java.util.List;
 
 /**
@@ -17,5 +17,5 @@ public interface DataSourceAdapter {
      * @param mappings 字段映射配置
      * @return 事件规范列表
      */
-    List<EventSpec> fetch(ServiceConfig srcCfg, SyncTask task, List<FieldMappingDTO> mappings);
+    List<Event> fetch(ServiceConfig srcCfg, SyncTask task, List<FieldMappingDTO> mappings);
 }

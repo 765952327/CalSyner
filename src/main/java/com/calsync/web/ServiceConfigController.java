@@ -3,7 +3,7 @@ package com.calsync.web;
 import com.calsync.domain.ServiceConfig;
 import com.calsync.repository.ServiceConfigRepository;
 import com.calsync.service.datasource.CustomScriptDataSourceAdapter;
-import com.calsync.sync.EventSpec;
+import com.calsync.sync.Event;
 import com.calsync.web.dto.FieldMappingDTO;
 import java.time.Instant;
 import java.util.List;
@@ -116,7 +116,7 @@ public class ServiceConfigController {
             fake.setTaskName("ScriptTest");
             fake.setJqlExpression("project = TEST");
             java.util.List<FieldMappingDTO> mappings = java.util.Collections.emptyList();
-            java.util.List<EventSpec> specs = adapter.fetch(cfg, fake, mappings);
+            java.util.List<Event> specs = adapter.fetch(cfg, fake, mappings);
             java.util.Map<String, Object> result = new java.util.HashMap<>();
             result.put("count", specs.size());
             result.put("sample", specs.isEmpty() ? null : specs.get(0).getSummary());

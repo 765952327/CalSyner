@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
-public class EventSpec {
+public class Event {
     private String summary;
     private Instant start;
     private Instant end;
@@ -31,7 +31,7 @@ public class EventSpec {
     private Instant updatedAt;      // 源更新时间
     
     
-    public EventSpec(String summary, Instant start, Instant end) {
+    public Event(String summary, Instant start, Instant end) {
         this.summary = summary;
         this.start = start;
         this.end = end;

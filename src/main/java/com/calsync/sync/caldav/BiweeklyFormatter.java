@@ -4,11 +4,11 @@ import biweekly.Biweekly;
 import biweekly.ICalendar;
 import biweekly.component.VEvent;
 import biweekly.component.VTodo;
-import com.calsync.sync.EventSpec;
+import com.calsync.sync.Event;
 import java.util.Date;
 
 public class BiweeklyFormatter {
-    public String format(EventSpec spec, String uid) {
+    public String format(Event spec, String uid) {
         ICalendar cal = new ICalendar();
         VEvent ev = new VEvent();
         if (uid != null) ev.setUid(uid);
@@ -26,7 +26,7 @@ public class BiweeklyFormatter {
         return Biweekly.write(cal).go();
     }
 
-    public String formatTodo(EventSpec spec, String uid) {
+    public String formatTodo(Event spec, String uid) {
         ICalendar cal = new ICalendar();
         VTodo td = new VTodo();
         if (uid != null) td.setUid(uid);

@@ -4,6 +4,8 @@ import cn.hutool.core.lang.TypeReference;
 import cn.hutool.json.JSONUtil;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
@@ -18,7 +20,7 @@ import net.sf.json.JSON;
 public class JiraClientWrap {
     private JiraClient jiraClient;
     private RestClient restclient;
-    private Map<String,JiraParam> paramsMap;
+    private Map<String,JiraParam> paramsMap = new LinkedHashMap<>();
     
     public JiraClientWrap(JiraClient jiraClient) throws JiraException {
         this.jiraClient = jiraClient;

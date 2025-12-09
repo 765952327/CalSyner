@@ -10,7 +10,7 @@ import com.calsync.domain.ServiceConfig;
 import com.calsync.domain.ServiceType;
 import com.calsync.repository.OperationLogRepository;
 import com.calsync.repository.ServiceConfigRepository;
-import com.calsync.sync.EventSpec;
+import com.calsync.sync.Event;
 import com.calsync.sync.caldav.BiweeklyFormatter;
 import com.calsync.sync.caldav.CalDavConfig;
 import com.calsync.sync.caldav.RadicalePublisher;
@@ -32,14 +32,14 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
     private final OperationLogRepository logs;
     private final ServiceConfigRepository serviceConfigs;
     
-    public void upsertEvents(List<EventSpec> specs) {
+    public void upsertEvents(List<Event> specs) {
         Set<String> desired = new HashSet<>();
-        for (EventSpec s : specs) desired.add(s.getSummary());
+        for (Event s : specs) desired.add(s.getSummary());
         List<String> existing = publisher.listSummaries();
         for (String ex : existing) {
             if (!desired.contains(ex)) publisher.deleteBySummary(ex);
         }
-        for (EventSpec spec : specs) {
+        for (Event spec : specs) {
             String uid = UUID.randomUUID().toString();
             String ics = formatter.format(spec, uid);
             publisher.replaceBySummary(ics, uid, spec.getSummary());
@@ -49,7 +49,7 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
     }
     
     @Override
-    public void upsert(List<EventSpec> specs) {
+    public void upsert(List<Event> specs) {
         upsertEvents(specs);
     }
     
@@ -63,15 +63,15 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
         return serviceConfigs.findById(id).filter(c -> expectType == c.getServiceType()).orElse(null);
     }
     
-    public List<RadicateSyncResult> upsertAndCollect(List<EventSpec> specs, Long recordId, Long taskId) {
+    public List<RadicateSyncResult> upsertAndCollect(List<Event> specs, Long recordId, Long taskId) {
         List<RadicateSyncResult> out = new ArrayList<>();
         Set<String> desired = new HashSet<>();
-        for (EventSpec s : specs) desired.add(s.getSummary());
+        for (Event s : specs) desired.add(s.getSummary());
         List<String> existing = publisher.listSummaries();
         for (String ex : existing) {
             if (!desired.contains(ex)) publisher.deleteBySummary(ex);
         }
-        for (EventSpec spec : specs) {
+        for (Event spec : specs) {
             String uid = UUID.randomUUID().toString();
             String ics = formatter.format(spec, uid);
             String prevEventIcs = publisher.getEventIcsBySummary(spec.getSummary());
@@ -131,19 +131,19 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
         return out;
     }
     
-    public List<RadicateSyncResult> upsertAndCollect(List<EventSpec> specs, Long recordId, Long taskId, Long radicateConfigId) {
+    public List<RadicateSyncResult> upsertAndCollect(List<Event> specs, Long recordId, Long taskId, Long radicateConfigId) {
         ServiceConfig cfg = getConfig(radicateConfigId, ServiceType.RADICALE);
         String base = cfg != null ? cfg.getBaseUrl() : CalDavConfig.RADICALE_URL;
         String user = cfg != null ? cfg.getUsername() : CalDavConfig.RADICALE_USERNAME;
         String pass = cfg != null ? cfg.getPassword() : CalDavConfig.RADICALE_PASSWORD;
         List<RadicateSyncResult> out = new ArrayList<>();
         Set<String> desired = new HashSet<>();
-        for (EventSpec s : specs) desired.add(s.getSummary());
+        for (Event s : specs) desired.add(s.getSummary());
         List<String> existing = publisher.listSummaries(base, user, pass);
         for (String ex : existing) {
             if (!desired.contains(ex)) publisher.deleteBySummary(ex, base, user, pass);
         }
-        for (EventSpec spec : specs) {
+        for (Event spec : specs) {
             String uid = java.util.UUID.randomUUID().toString();
             String ics = formatter.format(spec, uid);
             String prevEventIcs = publisher.getEventIcsBySummary(spec.getSummary(), base, user, pass);

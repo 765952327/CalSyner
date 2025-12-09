@@ -2,7 +2,7 @@ package com.calsync.service;
 
 import com.calsync.domain.ServiceType;
 import com.calsync.repository.ServiceConfigRepository;
-import com.calsync.sync.EventSpec;
+import com.calsync.sync.Event;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -15,7 +15,7 @@ public class JiraClientService {
         this.serviceConfigs = serviceConfigs;
     }
     
-    public List<EventSpec> fetchByJql(Long jiraConfigId, String jql) {
+    public List<Event> fetchByJql(Long jiraConfigId, String jql) {
         com.calsync.domain.ServiceConfig cfg = null;
         if (jiraConfigId != null) {
             cfg = serviceConfigs.findById(jiraConfigId)

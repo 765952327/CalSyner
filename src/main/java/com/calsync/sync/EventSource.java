@@ -11,6 +11,6 @@ public interface EventSource {
      * @param taskId 同步任务
      * @return 事件规范列表
      */
-    List<EventSpec> fetch(Long taskId);
+    List<Event> fetch(Long taskId);
 }
 

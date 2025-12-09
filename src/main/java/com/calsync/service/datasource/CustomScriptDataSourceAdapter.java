@@ -4,7 +4,7 @@ import com.calsync.domain.ServiceConfig;
 import com.calsync.domain.SyncTask;
 import com.calsync.web.dto.FieldMappingDTO;
 import com.calsync.sync.custom.CustomScript;
-import com.calsync.sync.EventSpec;
+import com.calsync.sync.Event;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 import java.io.File;
@@ -19,7 +19,7 @@ import java.util.List;
  */
 public class CustomScriptDataSourceAdapter implements DataSourceAdapter {
     @Override
-    public List<EventSpec> fetch(ServiceConfig srcCfg, SyncTask task, List<FieldMappingDTO> mappings) {
+    public List<Event> fetch(ServiceConfig srcCfg, SyncTask task, List<FieldMappingDTO> mappings) {
         if (srcCfg == null) return Collections.emptyList();
         String code = srcCfg.getApiToken();
         if (code == null || code.trim().isEmpty()) return Collections.emptyList();

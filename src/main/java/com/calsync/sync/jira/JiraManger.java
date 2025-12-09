@@ -4,8 +4,8 @@ import com.calsync.domain.ServiceConfig;
 import com.calsync.domain.SyncTask;
 import com.calsync.service.ServiceConfigService;
 import com.calsync.service.SyncTaskService;
+import com.calsync.sync.Event;
 import com.calsync.sync.EventSource;
-import com.calsync.sync.EventSpec;
 import com.calsync.sync.ParamsSource;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,7 +58,7 @@ public class JiraManger implements EventSource, ParamsSource<JiraParam> {
     
     
     @Override
-    public List<EventSpec> fetch(Long taskId) {
+    public List<Event> fetch(Long taskId) {
         try {
             SyncTask task = syncTaskService.getTask(taskId);
             if (task == null) {

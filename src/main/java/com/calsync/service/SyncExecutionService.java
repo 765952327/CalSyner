@@ -11,9 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import com.calsync.sync.EventSpec;
+import com.calsync.sync.Event;
 import com.calsync.web.dto.FieldMappingDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.calsync.domain.ServiceConfig;
 import com.calsync.repository.ServiceConfigRepository;
 import com.calsync.service.datasource.DataSourceAdapter;
@@ -55,7 +56,7 @@ public class SyncExecutionService {
             List<FieldMappingDTO> mappings = parseMappings(task.getDescription());
             ServiceConfig srcCfg = serviceConfigs.findById(task.getJiraConfigId()).orElse(null);
             DataSourceAdapter adapter = pickAdapter(srcCfg);
-            List<EventSpec> specs = adapter.fetch(srcCfg, task, mappings);
+            List<Event> specs = adapter.fetch(srcCfg, task, mappings);
             if (specs == null) specs = new ArrayList<>();
             List<RadicateSyncResult> results = radicate.upsertAndCollect(specs, rec.getId(), task.getId(), task.getRadicateConfigId());
             int ok = 0, fail = 0;
@@ -93,10 +94,35 @@ public class SyncExecutionService {
         try {
             if (json == null || json.trim().isEmpty()) return java.util.Collections.emptyList();
             ObjectMapper mapper = new ObjectMapper();
-            java.util.List<FieldMappingDTO> arr = new java.util.ArrayList<>();
-            FieldMappingDTO[] a = mapper.readValue(json, FieldMappingDTO[].class);
-            if (a != null) java.util.Collections.addAll(arr, a);
-            return arr;
+            JsonNode root = mapper.readTree(json);
+            java.util.List<FieldMappingDTO> out = new java.util.ArrayList<>();
+            if (root != null && root.isArray()) {
+                for (JsonNode n : root) {
+                    String src = null;
+                    String dst = null;
+                    String tt = null;
+                    if (n.hasNonNull("source")) src = n.path("source").asText(null);
+                    if (n.hasNonNull("target")) dst = n.path("target").asText(null);
+                    if ((src == null || dst == null) && (n.hasNonNull("jiraField") || n.hasNonNull("radicateField"))) {
+                        if (src == null) src = n.path("jiraField").asText(null);
+                        if (dst == null) dst = n.path("radicateField").asText(null);
+                    }
+                    if (n.hasNonNull("transformType")) tt = n.path("transformType").asText(null);
+                    if (src != null && dst != null) {
+                        FieldMappingDTO m = new FieldMappingDTO();
+                        m.setJiraField(src);
+                        m.setRadicateField(dst);
+                        m.setTransformType(tt);
+                        out.add(m);
+                    }
+                }
+                return out;
+            } else {
+                FieldMappingDTO[] a = mapper.readValue(json, FieldMappingDTO[].class);
+                java.util.List<FieldMappingDTO> arr = new java.util.ArrayList<>();
+                if (a != null) java.util.Collections.addAll(arr, a);
+                return arr;
+            }
         } catch (Exception ignored) {}
         return java.util.Collections.emptyList();
     }

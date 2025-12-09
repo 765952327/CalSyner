@@ -10,6 +10,6 @@ public interface EventPublisher {
      * 发布或更新事件。
      * @param specs 事件规范列表
      */
-    void upsert(List<EventSpec> specs);
+    void upsert(List<Event> specs);
 }
 

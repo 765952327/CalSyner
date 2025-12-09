@@ -1,6 +1,6 @@
 package com.calsync.service.mapper;
 
-import com.calsync.sync.EventSpec;
+import com.calsync.sync.Event;
 import com.calsync.web.dto.FieldMappingDTO;
 import java.time.Instant;
 import java.util.List;
@@ -12,7 +12,7 @@ public final class FieldMapper {
     private FieldMapper() {
     }
     
-    public static void apply(EventSpec s, List<FieldMappingDTO> mappings) {
+    public static void apply(Event s, List<FieldMappingDTO> mappings) {
         if (s == null || mappings == null || mappings.isEmpty()) return;
         for (FieldMappingDTO m : mappings) {
             String src = m.getJiraField();
@@ -30,7 +30,7 @@ public final class FieldMapper {
         }
     }
     
-    private static String pickString(EventSpec s, String src) {
+    private static String pickString(Event s, String src) {
         if (src == null) return null;
         switch (src.toLowerCase()) {
             case "summary":
@@ -44,7 +44,7 @@ public final class FieldMapper {
         }
     }
     
-    private static Instant pickInstant(EventSpec s, String src, Instant fallback) {
+    private static Instant pickInstant(Event s, String src, Instant fallback) {
         if (src == null) return fallback;
         switch (src.toLowerCase()) {
             case "start":

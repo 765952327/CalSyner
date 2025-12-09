@@ -140,18 +140,41 @@
       <div class="section-card">
         <h3>字段映射</h3>
         <div class="row">
-          <div class="form-item"><label>描述 / 字段映射(JSON)</label><textarea id="description" rows="6" placeholder='[{"jiraField":"summary","radicateField":"summary"}]'></textarea></div>
+          <div class="form-item"><label>描述 / 字段映射(JSON)</label><textarea id="description" rows="6" placeholder='[{"source":"{summary}","target":"summary"}]'></textarea></div>
         </div>
         <div class="row">
           <div class="form-item">
-            <div class="help">映射规则：以 JSON 数组表示，每项包含 <code>jiraField</code> 与 <code>radicateField</code>。<br>源字段可选：summary, description, location, start, end；目标字段可选：summary, description, location, start, end, url, organizer, externalId, rrule。</div>
-            <div class="toolbar" id="mapTools">
-              <span class="badge type jira" id="mapSrcSvc">源：-</span>
-              <select id="mapSrc"></select>
-              <span>→</span>
-              <span class="badge type radicale" id="mapDstSvc">目标：-</span>
-              <select id="mapDst"></select>
-              <button class="btn" id="btnAddMap">添加映射</button>
+            <div class="help">映射规则：以 JSON 数组表示，每项包含 <code>source</code> 与 <code>target</code>。<br>支持表达式：在 <code>source</code> 中使用 <code>{字段键}</code> 进行拼接，例如 <code>"[{summary}] 优先级：{priority}"</code>；若不使用表达式，则默认使用单字段（自动包裹为 <code>{字段键}</code>）。<br>目标字段可选：summary, description, location, start, end, url, organizer, externalId, rrule。</div>
+            <div class="sync-map vstack" id="mapTools">
+              <div class="sync-col">
+                <div class="filter-bar">
+                  <span class="badge type jira" id="mapSrcSvc">源：-</span>
+                </div>
+                <div class="filter-bar">
+                  <select id="mapSrc"></select>
+                  <input id="mapSrcSearch" placeholder="筛选（键或别名）">
+                </div>
+                <div class="filter-bar">
+                  <input id="mapExpr" placeholder="在此输入表达式，例如 [{summary}] - {customfield_123}">
+                  <button class="btn-outline" id="btnInsertSrc">插入源字段</button>
+                </div>
+              </div>
+              <div class="sync-col mid">
+                <div class="sync-action">
+                  <div class="sync-arrow">↓</div>
+                </div>
+              </div>
+              <div class="sync-col">
+                <div class="filter-bar">
+                  <span class="badge type radicale" id="mapDstSvc">目标：-</span>
+                </div>
+                <div class="filter-bar">
+                  <select id="mapDst"></select>
+                </div>
+              </div>
+              <div class="filter-bar map-actions">
+                <button class="btn btn-success btn-lg" id="btnAddMap">添加映射</button>
+              </div>
             </div>
             <div class="card" id="mapPreview"></div>
           </div>
@@ -175,6 +198,8 @@
     let jiraOptions=[]; let radicateOptions=[];
     const pad=n=>n<10?'0'+n:n;
     const fmt=t=>{if(!t)return ''; const d=new Date(t); if(isNaN(d)) return ''; return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`};
+    let chartN = 12;
+    let cachedTaskRecords = [];
     function loadConfigs(){
       return fetch('/api/config/services').then(r=>r.json()).then(list=>{
         jiraOptions=list.filter(x=>x.serviceType==='JIRA');
@@ -414,23 +439,71 @@
 
     function initMappingUI(){
       const sSel=document.querySelector('#mapSrc');
+      const sSearch=document.querySelector('#mapSrcSearch');
+      const sExpr=document.querySelector('#mapExpr');
+      const btnInsert=document.querySelector('#btnInsertSrc');
       const dSel=document.querySelector('#mapDst');
       const jId = parseInt(document.querySelector('#jiraConfigId').value||'0')||null;
       const rId = parseInt(document.querySelector('#radicateConfigId').value||'0')||null;
+      let srcParamsCache = [];
+      const renderSrcOptions = (list)=>{
+        sSel.innerHTML = (list||[]).map(p=>{
+          const key = (typeof p==='string')? p : (p.key||'');
+          const alias = (typeof p==='string')? p : (p.alias||'');
+          const label = alias || key;
+          return key? `<option value="${key}">${label}</option>` : '';
+        }).join('');
+      };
       Promise.all([
-        fetch(`/api/sync/tasks/fields/source${jId?('?serviceId='+jId):''}`).then(r=>r.json()),
+        fetch(`/api/param/query?taskId=${id}&serviceType=JIRA`).then(r=>r.json()),
         fetch(`/api/sync/tasks/fields/target${rId?('?serviceId='+rId):''}`).then(r=>r.json())
-      ]).then(([srcFields,dstFields])=>{
-        sSel.innerHTML = (srcFields||[]).map(f=>`<option value="${f}">${f}</option>`).join('');
+      ]).then(([params,dstFields])=>{
+        srcParamsCache = (params||[]).map(p=>({key: p.key||'', alias: p.alias||''})).filter(p=>p.key);
+        if(sSearch) sSearch.value='';
+        if(sExpr) sExpr.value='';
+        if(srcParamsCache.length>0){
+          renderSrcOptions(srcParamsCache);
+        }else{
+          srcParamsCache = ['summary','description','location','start','end'].map(f=>({key:f, alias:f}));
+          renderSrcOptions(srcParamsCache);
+        }
         dSel.innerHTML = (dstFields||[]).map(f=>`<option value="${f}">${f}</option>`).join('');
       }).catch(()=>{
-        sSel.innerHTML = ['summary','description','location','start','end'].map(f=>`<option value="${f}">${f}</option>`).join('');
+        srcParamsCache = ['summary','description','location','start','end'].map(f=>({key:f, alias:f}));
+        renderSrcOptions(srcParamsCache);
         dSel.innerHTML = ['summary','description','location','start','end','url','organizer','externalId','rrule'].map(f=>`<option value="${f}">${f}</option>`).join('');
       });
+      if(sSearch){
+        sSearch.oninput = ()=>{
+          const q=(sSearch.value||'').trim().toLowerCase();
+          const filtered = q? srcParamsCache.filter(p=> (p.key||'').toLowerCase().includes(q) || (p.alias||'').toLowerCase().includes(q) ) : srcParamsCache.slice();
+          renderSrcOptions(filtered);
+        };
+      }
+      if(btnInsert && sExpr && sSel){
+        const insertAtCursor = (input, text)=>{
+          const start = input.selectionStart || 0;
+          const end = input.selectionEnd || 0;
+          const val = input.value || '';
+          input.value = val.substring(0,start) + text + val.substring(end);
+          const pos = start + text.length;
+          input.setSelectionRange(pos, pos);
+          input.focus();
+        };
+        btnInsert.onclick = ()=>{
+          const key = sSel.value || '';
+          if(!key) return;
+          insertAtCursor(sExpr, `{${key}}`);
+        };
+      }
       function parseMappings(){
         const txt=(document.querySelector('#description').value||'').trim();
         if(!txt) return [];
-        try{ const arr=JSON.parse(txt); if(Array.isArray(arr)) return arr.filter(x=>x&&x.jiraField&&x.radicateField); return []; }catch(e){ return []; }
+        try{
+          const arr=JSON.parse(txt);
+          if(Array.isArray(arr)) return arr.filter(x=>x && ((x.source&&x.target) || (x.jiraField&&x.radicateField)) );
+          return [];
+        }catch(e){ return []; }
       }
       function renderPreview(){
         const box=document.querySelector('#mapPreview');
@@ -440,7 +513,7 @@
         arr.forEach((m,i)=>{
           const item=document.createElement('div');
           item.className='kpi';
-          item.innerHTML=`<div><div class='label'>${m.jiraField||'-'} → ${m.radicateField||'-'}</div><div class='trend'>${m.transformType||''}</div></div><div><button class='btn-outline' data-i='${i}'>移除</button></div>`;
+          item.innerHTML=`<div><div class='label'>${(m.source||m.jiraField)||'-'} → ${(m.target||m.radicateField)||'-'}</div><div class='trend'>${m.transformType||''}</div></div><div><button class='btn-outline' data-i='${i}'>移除</button></div>`;
           box.appendChild(item);
         });
         box.querySelectorAll('button[data-i]').forEach(b=>{
@@ -453,7 +526,8 @@
       }
       document.querySelector('#btnAddMap').onclick=()=>{
         const arr=parseMappings();
-        arr.push({jiraField:sSel.value, radicateField:dSel.value});
+        const expr = (sExpr && (sExpr.value||'').trim()) ? sExpr.value.trim() : (sSel.value ? `{${sSel.value}}` : '');
+        arr.push({jiraField:expr, radicateField:dSel.value});
         document.querySelector('#description').value = JSON.stringify(arr, null, 2);
         renderPreview();
       };

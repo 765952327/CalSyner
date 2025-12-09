@@ -1,7 +1,7 @@
 package com.calsync.sync.jira;
 
+import com.calsync.sync.Event;
 import com.calsync.sync.EventMapper;
-import com.calsync.sync.EventSpec;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -19,7 +19,7 @@ public class IssuesWrap implements EventMapper, Iterator<Issue> {
     }
     
     @Override
-    public List<EventSpec> toEvents() {
+    public List<Event> toEvents() {
         
         return null;
     }
