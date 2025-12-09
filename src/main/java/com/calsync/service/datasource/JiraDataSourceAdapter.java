@@ -23,5 +23,6 @@ public class JiraDataSourceAdapter implements DataSourceAdapter {
 //        if (mappings == null || mappings.isEmpty()) return specs;
 //        for (EventSpec s : specs) FieldMapper.apply(s, mappings);
 //        return specs;
+        return new ArrayList<>();
     }
 }

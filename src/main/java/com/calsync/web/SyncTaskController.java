@@ -1,5 +1,6 @@
 package com.calsync.web;
 
+import com.calsync.domain.ServiceType;
 import com.calsync.domain.SyncTask;
 import com.calsync.repository.SyncTaskRepository;
 import com.calsync.service.SyncExecutionService;
@@ -117,7 +118,7 @@ public class SyncTaskController {
             ServiceConfig cfg = null;
             if(serviceId!=null){
                 cfg = svcRepo.findById(serviceId)
-                        .filter(c -> "JIRA".equalsIgnoreCase(c.getServiceType()))
+                        .filter(c -> c.getServiceType() == ServiceType.JIRA)
                         .orElse(null);
             }
             if(cfg==null){

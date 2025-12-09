@@ -1,5 +1,6 @@
 package com.calsync.service;
 
+import com.calsync.domain.ServiceType;
 import com.calsync.domain.SyncRecord;
 import com.calsync.domain.SyncTask;
 import com.calsync.repository.SyncRecordRepository;
@@ -101,8 +102,8 @@ public class SyncExecutionService {
     }
 
     private DataSourceAdapter pickAdapter(ServiceConfig cfg) {
-        String t = cfg != null ? cfg.getServiceType() : "JIRA";
-        if ("CUSTOM".equalsIgnoreCase(t)) return new CustomScriptDataSourceAdapter();
+        ServiceType t = cfg != null ? cfg.getServiceType() : ServiceType.JIRA;
+        if (t == ServiceType.CUSTOM) return new CustomScriptDataSourceAdapter();
         return new JiraDataSourceAdapter();
     }
 }
