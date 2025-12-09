@@ -43,7 +43,7 @@
   <table id="tbl">
     <thead>
       <tr>
-        <th>ID</th><th>名称</th><th>启用</th><th>同步源</th><th>同步目标</th><th>Cron</th><th>JQL</th><th>描述</th><th>状态</th>
+        <th>名称</th><th>状态</th><th>启用</th><th>同步源</th><th>同步目标</th><th>上次执行</th><th>下次执行</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -63,6 +63,8 @@
       document.querySelectorAll('.side-nav a').forEach(a=>{ if(a.getAttribute('href')===canon) a.classList.add('active') });
     })();
     const tbody=document.querySelector('#tbl tbody');
+    const pad=n=>n<10?'0'+n:n;
+    const fmt=t=>{ if(!t) return ''; const d=new Date(t); if(isNaN(d)) return ''; return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
     let jiraOptions=[]; let radicateOptions=[];
     function loadConfigs(){
       return fetch('/api/config/services').then(r=>r.json()).then(list=>{
@@ -79,15 +81,14 @@
           const tr=document.createElement('tr');
           const jName = (jiraOptions.find(o=>o.id===x.jiraConfigId)?.serviceName) || (x.jiraConfigId?('JIRA '+x.jiraConfigId):'-');
           const rName = (radicateOptions.find(o=>o.id===x.radicateConfigId)?.serviceName) || (x.radicateConfigId?('RADICALE '+x.radicateConfigId):'-');
-          tr.innerHTML=`<td>${x.id}</td>
+          tr.innerHTML=`
           <td>${x.taskName||'-'}</td>
-          <td>${x.isEnabled?'true':'false'}</td>
+          <td><span class='badge'>${x.syncStatus||''}</span></td>
+          <td>${x.isEnabled? "<span class='badge enabled'>启用</span>" : "<span class='badge disabled'>停用</span>"}</td>
           <td>${jName}</td>
           <td>${rName}</td>
-          <td>${x.cronExpression||''}</td>
-          <td>${x.jqlExpression||''}</td>
-          <td>${x.description||''}</td>
-          <td><span class='badge'>${x.syncStatus||''}</span></td>`;
+          <td>${fmt(x.lastSyncTime)||''}</td>
+          <td>${fmt(x.nextSyncTime)||''}</td>`;
           tr.style.cursor='pointer';
           tr.onclick=()=>{ location.href='/admin/task.html?id='+x.id; };
           tbody.appendChild(tr);

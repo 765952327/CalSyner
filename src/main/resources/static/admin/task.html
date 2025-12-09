@@ -236,7 +236,13 @@
       if(!okCron){ toast('Cron表达式不合法'); return; }
       try{ const r=await fetch(`${api}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); if(!r.ok){ toast('保存失败'); return; } toast('已保存'); }catch(e){ toast('保存失败'); }
     };
-    document.querySelector('#btnExec').onclick=async()=>{ await fetch(`${api}/${id}/execute`,{method:'POST'}); toast('已触发执行'); };
+    document.querySelector('#btnExec').onclick=async()=>{
+      try{
+        const r = await fetch(`${api}/${id}/execute`,{method:'POST', keepalive:true});
+        if(!r.ok){ toast('触发失败'); return; }
+        toast('已触发执行');
+      }catch(e){ toast('触发失败'); }
+    };
     document.querySelector('#btnToggle').onclick=async()=>{ await fetch(`${api}/${id}/toggle`,{method:'POST'}); toast('已切换启用'); load(); };
     document.querySelector('#btnDel').onclick=async()=>{ await fetch(`${api}/${id}`,{method:'DELETE'}); toast('已删除'); setTimeout(()=>{ location.href='/admin/tasks.html'; }, 200); };
 
