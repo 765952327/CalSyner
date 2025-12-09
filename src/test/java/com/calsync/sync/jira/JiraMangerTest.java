@@ -1,18 +1,26 @@
 package com.calsync.sync.jira;
 
-import com.calsync.sync.EventSpec;
+import com.calsync.domain.SyncTask;
+import com.calsync.service.SyncTaskService;
 import java.util.List;
+import net.rcarz.jiraclient.JiraException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 @SpringBootTest
+//@ActiveProfiles("dev")
 class JiraMangerTest {
     @Autowired
     private JiraManger jiraManger;
+    @Autowired
+    private SyncTaskService syncTaskService;
     
     @Test
-    void fetch() {
-        List<EventSpec> list = jiraManger.fetch(1L);
+    void fetch() throws JiraException {
+        SyncTask task = syncTaskService.getTask(3L);
+        List<JiraParam> params = jiraManger.getAllFields(task);
     }
 }

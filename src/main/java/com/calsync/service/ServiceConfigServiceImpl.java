@@ -12,6 +12,6 @@ public class ServiceConfigServiceImpl implements ServiceConfigService {
     
     @Override
     public ServiceConfig getConfig(Long id) {
-        return repository.getReferenceById(id);
+        return repository.findById(id).orElse(null);
     }
 }

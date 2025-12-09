@@ -3,7 +3,6 @@ package com.calsync.sync.jira;
 import com.calsync.service.datasource.JiraDataSourceAdapter;
 import com.calsync.sync.EventMapper;
 import com.calsync.sync.EventSpec;
-import com.calsync.sync.Param;
 import com.calsync.sync.ParamsSource;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -33,7 +32,7 @@ public class IssuesWrap implements EventMapper, ParamsSource, Iterator<Issue> {
     
     
     @Override
-    public List<Param> getParams() {
+    public List<JiraParam> getParams() {
         Issue issue = issues.get(0);
         if (issue == null) return java.util.Collections.emptyList();
         try {
@@ -42,11 +41,11 @@ public class IssuesWrap implements EventMapper, ParamsSource, Iterator<Issue> {
             Object obj = f.get(issue);
             if (obj instanceof Map) {
                 Map<?, ?> map = (Map<?, ?>) obj;
-                List<Param> ps = new ArrayList<>();
+                List<JiraParam> ps = new ArrayList<>();
                 for (Object k : map.keySet()) {
                     if (k != null) {
                         String name = String.valueOf(k);
-                        ps.add(new Param(name, name));
+                        ps.add(new JiraParam(name, name));
                     }
                 }
                 return ps;

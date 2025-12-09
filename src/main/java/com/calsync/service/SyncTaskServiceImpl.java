@@ -12,6 +12,6 @@ public class SyncTaskServiceImpl implements SyncTaskService {
     
     @Override
     public SyncTask getTask(Long id) {
-        return repository.getReferenceById(id);
+        return repository.findById(id).orElse(null);
     }
 }
