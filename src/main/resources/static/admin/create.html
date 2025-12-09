@@ -30,7 +30,7 @@
           <div class="form-item">
             <label>类型</label>
             <select id="serviceType">
-              <option value="RADICATE">RADICATE</option>
+              <option value="RADICALE">RADICALE</option>
               <option value="JIRA">JIRA</option>
               <option value="CUSTOM">CUSTOM</option>
             </select>
@@ -39,7 +39,7 @@
         <div class="row">
           <div class="form-item">
             <label>名称</label>
-            <input id="serviceName" placeholder="例如 Radicate-Prod">
+            <input id="serviceName" placeholder="例如 Radicale-Prod">
           </div>
         </div>
       </div>
@@ -118,7 +118,7 @@
       const hero=document.querySelector('.hero');
       hero.classList.remove('t-radicate','t-jira','t-custom');
       const use=document.querySelector('#typeIconUse');
-      if(type==='RADICATE'){ hero.classList.add('t-radicate'); use.setAttribute('href','#i-radicate'); }
+      if(type==='RADICALE'){ hero.classList.add('t-radicate'); use.setAttribute('href','#i-radicate'); }
       else if(type==='JIRA'){ hero.classList.add('t-jira'); use.setAttribute('href','#i-jira'); }
       else if(type==='CUSTOM'){ hero.classList.add('t-custom'); use.setAttribute('href','#i-custom'); }
     }

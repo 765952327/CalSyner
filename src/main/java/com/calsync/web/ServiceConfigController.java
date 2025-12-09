@@ -5,31 +5,41 @@ import com.calsync.repository.ServiceConfigRepository;
 import com.calsync.service.datasource.CustomScriptDataSourceAdapter;
 import com.calsync.sync.EventSpec;
 import com.calsync.web.dto.FieldMappingDTO;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/config/services")
 public class ServiceConfigController {
-    private final ServiceConfigRepository repo;
-    public ServiceConfigController(ServiceConfigRepository repo) { this.repo = repo; }
-
+    @Autowired
+    private ServiceConfigRepository repo;
+    
     @GetMapping
-    public List<ServiceConfig> list() { return repo.findAll(); }
-
+    public List<ServiceConfig> list() {
+        return repo.findAll();
+    }
+    
     @GetMapping("/{id}")
     public ResponseEntity<ServiceConfig> get(@PathVariable Long id) {
         return repo.findById(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
-
+    
     @PostMapping
     public ServiceConfig create(@RequestBody ServiceConfig cfg) {
         cfg.setCreatedAt(Instant.now());
@@ -37,7 +47,7 @@ public class ServiceConfigController {
         cfg.setConnectionStatus("UNKNOWN");
         return repo.save(cfg);
     }
-
+    
     @PutMapping("/{id}")
     public ResponseEntity<ServiceConfig> update(@PathVariable Long id, @RequestBody ServiceConfig body) {
         return repo.findById(id)
@@ -53,14 +63,14 @@ public class ServiceConfigController {
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
-
+    
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (!repo.existsById(id)) return ResponseEntity.notFound().build();
         repo.deleteById(id);
         return ResponseEntity.noContent().build();
     }
-
+    
     @PostMapping("/{id}/test")
     public ResponseEntity<ServiceConfig> test(@PathVariable Long id) {
         return repo.findById(id).map(cfg -> {
@@ -71,14 +81,15 @@ public class ServiceConfigController {
                 try (Response resp = client.newCall(req).execute()) {
                     ok = resp.isSuccessful();
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
             cfg.setConnectionStatus(ok ? "OK" : "FAILED");
             cfg.setLastTestTime(Instant.now());
             cfg.setUpdatedAt(Instant.now());
             return ResponseEntity.ok(repo.save(cfg));
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
-
+    
     @PostMapping("/{id}/script")
     public ResponseEntity<ServiceConfig> uploadScript(@PathVariable Long id, @RequestBody Map<String, String> body) {
         String code = body != null ? body.get("code") : null;
@@ -90,7 +101,7 @@ public class ServiceConfigController {
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
-
+    
     @PostMapping("/{id}/script/test")
     public ResponseEntity<Map<String, Object>> testScript(@PathVariable Long id, @RequestBody(required = false) Map<String, Object> body) {
         return repo.findById(id).map(cfg -> {

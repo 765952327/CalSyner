@@ -15,6 +15,7 @@ public class ServiceConfig {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Enumerated(EnumType.STRING)
     @Column(name = "service_type", nullable = false, length = 20)
     private ServiceType serviceType;
     @Column(name = "service_name", nullable = false, length = 100)

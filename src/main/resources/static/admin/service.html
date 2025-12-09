@@ -50,7 +50,7 @@
             <div class="form-item">
               <label>类型</label>
               <select id="serviceType">
-                <option value="RADICATE">RADICATE</option>
+                <option value="RADICALE">RADICALE</option>
                 <option value="JIRA">JIRA</option>
                 <option value="CUSTOM">CUSTOM</option>
               </select>
@@ -65,7 +65,7 @@
         </div>
         <div class="section-card">
           <h3>连接信息</h3>
-          <div clahauxs="row">
+          <div class="row">
             <div class="form-item">
               <label>地址</label>
               <input id="baseUrl">
@@ -154,10 +154,10 @@
         const hero = document.querySelector('.hero');
         hero.classList.remove('t-radicate','t-jira','t-custom');
         const use = document.querySelector('#typeIconUse');
-        if(x.serviceType==='RADICATE'){ hero.classList.add('t-radicate'); use.setAttribute('href','#i-radicate'); }
+        if(x.serviceType==='RADICALE'){ hero.classList.add('t-radicate'); use.setAttribute('href','#i-radicate'); }
         else if(x.serviceType==='JIRA'){ hero.classList.add('t-jira'); use.setAttribute('href','#i-jira'); }
         else if(x.serviceType==='CUSTOM'){ hero.classList.add('t-custom'); use.setAttribute('href','#i-custom'); }
-        document.querySelector('#serviceType').value = x.serviceType || 'RADICATE';
+        document.querySelector('#serviceType').value = x.serviceType || 'RADICALE';
         document.querySelector('#serviceName').value = x.serviceName || '';
         document.querySelector('#id').value = x.id;
         document.querySelector('#baseUrl').value = x.baseUrl || '';

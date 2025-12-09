@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Radicate 页面</title>
+  <title>Radicale 页面</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;margin:0;color:#111}
@@ -14,13 +14,13 @@
 <body>
   <header>
     <a href="/admin/index.html">返回首页</a>
-    <span style="margin-left:16px">选择 Radicate 配置：</span>
+    <span style="margin-left:16px">选择 Radicale 配置：</span>
     <select id="sel"></select>
   </header>
   <iframe id="frame"></iframe>
   <script>
     fetch('/api/config/services').then(r=>r.json()).then(list=>{
-      const rad=list.filter(x=>x.serviceType==='RADICATE');
+      const rad=list.filter(x=>x.serviceType==='RADICALE');
       const sel=document.querySelector('#sel');
       rad.forEach(x=>{
         const opt=document.createElement('option');

@@ -123,7 +123,7 @@
           <div class="form-item"><label>同步源（JIRA）</label><select id="jiraConfigId"><option value="">未选择</option></select></div>
         </div>
         <div class="row">
-          <div class="form-item"><label>同步目标（RADICATE）</label><select id="radicateConfigId"><option value="">未选择</option></select></div>
+          <div class="form-item"><label>同步目标（RADICALE）</label><select id="radicateConfigId"><option value="">未选择</option></select></div>
         </div>
       </div>
 
@@ -178,11 +178,11 @@
     function loadConfigs(){
       return fetch('/api/config/services').then(r=>r.json()).then(list=>{
         jiraOptions=list.filter(x=>x.serviceType==='JIRA');
-        radicateOptions=list.filter(x=>x.serviceType==='RADICATE');
+        radicateOptions=list.filter(x=>x.serviceType==='RADICALE');
         const jSel=document.querySelector('#jiraConfigId');
         const rSel=document.querySelector('#radicateConfigId');
         jSel.innerHTML='<option value="">未选择</option>' + jiraOptions.map(x=>`<option value="${x.id}">${x.serviceName||('JIRA '+x.id)}</option>`).join('');
-        rSel.innerHTML='<option value="">未选择</option>' + radicateOptions.map(x=>`<option value="${x.id}">${x.serviceName||('RADICATE '+x.id)}</option>`).join('');
+        rSel.innerHTML='<option value="">未选择</option>' + radicateOptions.map(x=>`<option value="${x.id}">${x.serviceName||('RADICALE '+x.id)}</option>`).join('');
       });
     }
     function fill(x){
@@ -206,7 +206,7 @@
       document.querySelector('#jqlExpression').value = x.jqlExpression||'';
       document.querySelector('#description').value = x.description||'';
       const jName = (jiraOptions.find(o=>o.id===x.jiraConfigId)||{}).serviceName || (x.jiraConfigId? ('JIRA '+x.jiraConfigId) : '-');
-      const rName = (radicateOptions.find(o=>o.id===x.radicateConfigId)||{}).serviceName || (x.radicateConfigId? ('RADICATE '+x.radicateConfigId) : '-');
+      const rName = (radicateOptions.find(o=>o.id===x.radicateConfigId)||{}).serviceName || (x.radicateConfigId? ('RADICALE '+x.radicateConfigId) : '-');
       const tSrc=document.querySelector('#tSrc'); const tDst=document.querySelector('#tDst');
       tSrc.textContent = '源：'+jName; tDst.textContent = '目标：'+rName;
       tSrc.className = 'badge type jira'; tDst.className = 'badge type radicate';

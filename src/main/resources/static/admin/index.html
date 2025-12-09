@@ -23,7 +23,7 @@
         <div class="card kpi">
           <div>
             <div class="label"><svg class="icon icon-md" viewBox="0 0 24 24"><path d="M12 2 L19 7 L19 17 L12 22 L5 17 L5 7 Z" fill="currentColor"/></svg> 服务配置</div>
-            <div class="trend">Jira / Radicate</div>
+            <div class="trend">Jira / Radicale</div>
           </div>
           <div class="value" id="kServices">-</div>
         </div>
@@ -36,7 +36,7 @@
         </div>
         <div class="card kpi">
           <div>
-            <div class="label"><svg class="icon icon-md" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7 L12 12 L16 14" stroke="currentColor" stroke-width="2"/></svg> Radicate配置</div>
+            <div class="label"><svg class="icon icon-md" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7 L12 12 L16 14" stroke="currentColor" stroke-width="2"/></svg> Radicale配置</div>
             <div class="trend">总数</div>
           </div>
           <div class="value" id="kRadicate">-</div>
@@ -104,7 +104,7 @@
         const tasks=await fetch('/api/sync/tasks').then(r=>r.json());
         const records=await fetch('/api/sync/records').then(r=>r.json());
         const jiraCnt=services.filter(s=>s.serviceType==='JIRA').length;
-        const radCnt=services.filter(s=>s.serviceType==='RADICATE').length;
+        const radCnt=services.filter(s=>s.serviceType==='RADICALE').length;
         document.querySelector('#kServices').textContent=services.length;
         document.querySelector('#kJira').textContent=jiraCnt;
         document.querySelector('#kRadicate').textContent=radCnt;

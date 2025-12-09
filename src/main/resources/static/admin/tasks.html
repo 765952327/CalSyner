@@ -67,7 +67,7 @@
     function loadConfigs(){
       return fetch('/api/config/services').then(r=>r.json()).then(list=>{
         jiraOptions=list.filter(x=>x.serviceType==='JIRA');
-        radicateOptions=list.filter(x=>x.serviceType==='RADICATE');
+        radicateOptions=list.filter(x=>x.serviceType==='RADICALE');
       });
     }
     function load(){
@@ -78,7 +78,7 @@
         list.forEach(x=>{
           const tr=document.createElement('tr');
           const jName = (jiraOptions.find(o=>o.id===x.jiraConfigId)?.serviceName) || (x.jiraConfigId?('JIRA '+x.jiraConfigId):'-');
-          const rName = (radicateOptions.find(o=>o.id===x.radicateConfigId)?.serviceName) || (x.radicateConfigId?('RADICATE '+x.radicateConfigId):'-');
+          const rName = (radicateOptions.find(o=>o.id===x.radicateConfigId)?.serviceName) || (x.radicateConfigId?('RADICALE '+x.radicateConfigId):'-');
           tr.innerHTML=`<td>${x.id}</td>
           <td>${x.taskName||'-'}</td>
           <td>${x.isEnabled?'true':'false'}</td>
