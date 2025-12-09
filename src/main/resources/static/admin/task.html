@@ -149,7 +149,7 @@
               <span class="badge type jira" id="mapSrcSvc">源：-</span>
               <select id="mapSrc"></select>
               <span>→</span>
-              <span class="badge type radicate" id="mapDstSvc">目标：-</span>
+              <span class="badge type radicale" id="mapDstSvc">目标：-</span>
               <select id="mapDst"></select>
               <button class="btn" id="btnAddMap">添加映射</button>
             </div>
@@ -209,7 +209,7 @@
       const rName = (radicateOptions.find(o=>o.id===x.radicateConfigId)||{}).serviceName || (x.radicateConfigId? ('RADICALE '+x.radicateConfigId) : '-');
       const tSrc=document.querySelector('#tSrc'); const tDst=document.querySelector('#tDst');
       tSrc.textContent = '源：'+jName; tDst.textContent = '目标：'+rName;
-      tSrc.className = 'badge type jira'; tDst.className = 'badge type radicate';
+      tSrc.className = 'badge type jira'; tDst.className = 'badge type radicale';
       const mSrc=document.querySelector('#mapSrcSvc'); const mDst=document.querySelector('#mapDstSvc');
       if(mSrc) mSrc.textContent = '源：'+jName;
       if(mDst) mDst.textContent = '目标：'+rName;

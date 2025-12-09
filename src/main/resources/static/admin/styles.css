@@ -81,7 +81,7 @@ nav.app a:hover{background:#eef2ff}
 .card.kpi.accent-failed .value{color:var(--danger)}
 .card.svc{padding:18px;border-radius:16px}
 .card.svc:hover{box-shadow:0 3px 12px rgba(0,0,0,.06);transition:box-shadow .2s}
-.card.svc.t-radicate{background:linear-gradient(135deg,#ecfeff,#ffffff);border-color:#06b6d4}
+.card.svc.t-radicale{background:linear-gradient(135deg,#ecfeff,#ffffff);border-color:#06b6d4}
 .card.svc.t-jira{background:linear-gradient(135deg,#eff6ff,#ffffff);border-color:#3b82f6}
 .card.svc.t-custom{background:linear-gradient(135deg,#fdf4ff,#ffffff);border-color:#a78bfa}
 .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
@@ -162,14 +162,14 @@ input,select,textarea{padding:10px;border:1px solid var(--border);border-radius:
 .hero.e-enabled{background:linear-gradient(135deg,#ecfdf5,#ffffff);border-color:var(--success)}
 .hero.e-disabled{background:linear-gradient(135deg,#f1f5f9,#ffffff);border-color:var(--border)}
 .type-icon{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center}
-.hero.t-radicate{background:linear-gradient(135deg,#ecfeff,#ffffff);border-color:#06b6d4}
+.hero.t-radicale{background:linear-gradient(135deg,#ecfeff,#ffffff);border-color:#06b6d4}
 .hero.t-jira{background:linear-gradient(135deg,#eff6ff,#ffffff);border-color:#3b82f6}
 .hero.t-custom{background:linear-gradient(135deg,#fdf4ff,#ffffff);border-color:#a78bfa}
-.hero.t-radicate .type-icon{background:#06b6d4;color:#fff}
+.hero.t-radicale .type-icon{background:#06b6d4;color:#fff}
 .hero.t-jira .type-icon{background:#3b82f6;color:#fff}
 .hero.t-custom .type-icon{background:#a78bfa;color:#fff}
 .badge.type.jira{background:#eff6ff;color:#1e3a8a;border-color:#3b82f6}
-.badge.type.radicate{background:#ecfeff;color:#0e7490;border-color:#06b6d4}
+.badge.type.radicale{background:#ecfeff;color:#0e7490;border-color:#06b6d4}
 .ops{display:flex;gap:6px;flex-wrap:nowrap;align-items:center}
 td.ops{white-space:nowrap}
 .empty{display:flex;align-items:center;justify-content:center;gap:10px;padding:24px;color:var(--muted)}
