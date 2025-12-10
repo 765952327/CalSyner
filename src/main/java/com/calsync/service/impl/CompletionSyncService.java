@@ -1,11 +1,9 @@
-package com.calsync.service;
+package com.calsync.service.impl;
 
 import com.calsync.repository.OperationLogRepository;
 import com.calsync.repository.SyncTaskRepository;
-import com.calsync.domain.SyncTask;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import java.util.List;
 
 @Component
 public class CompletionSyncService {

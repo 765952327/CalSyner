@@ -1,25 +1,24 @@
-package com.calsync.service;
+package com.calsync.service.impl;
 
+import com.calsync.domain.ServiceConfig;
 import com.calsync.domain.ServiceType;
 import com.calsync.domain.SyncRecord;
 import com.calsync.domain.SyncTask;
+import com.calsync.repository.ServiceConfigRepository;
 import com.calsync.repository.SyncRecordRepository;
 import com.calsync.repository.SyncTaskRepository;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import com.calsync.service.datasource.CustomScriptDataSourceAdapter;
+import com.calsync.service.datasource.DataSourceAdapter;
+import com.calsync.service.datasource.JiraDataSourceAdapter;
+import com.calsync.sync.Event;
+import com.calsync.web.dto.FieldMappingDTO;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import com.calsync.sync.Event;
-import com.calsync.web.dto.FieldMappingDTO;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.calsync.domain.ServiceConfig;
-import com.calsync.repository.ServiceConfigRepository;
-import com.calsync.service.datasource.DataSourceAdapter;
-import com.calsync.service.datasource.JiraDataSourceAdapter;
-import com.calsync.service.datasource.CustomScriptDataSourceAdapter;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 同步执行服务：按照任务定义拉取源数据、发布到目标并记录同步明细与结果。
@@ -29,19 +28,17 @@ public class SyncExecutionService {
     private final SyncTaskRepository taskRepo;
     private final SyncRecordRepository recordRepo;
     private final com.calsync.repository.SyncDetailRepository syncDetailRepo;
-    private final JiraClientService jira;
     private final RadicateClientService radicate;
     private final ServiceConfigRepository serviceConfigs;
-
-    public SyncExecutionService(SyncTaskRepository taskRepo, SyncRecordRepository recordRepo, com.calsync.repository.SyncDetailRepository syncDetailRepo, JiraClientService jira, RadicateClientService radicate, ServiceConfigRepository serviceConfigs) {
+    
+    public SyncExecutionService(SyncTaskRepository taskRepo, SyncRecordRepository recordRepo, com.calsync.repository.SyncDetailRepository syncDetailRepo, RadicateClientService radicate, ServiceConfigRepository serviceConfigs) {
         this.taskRepo = taskRepo;
         this.recordRepo = recordRepo;
         this.syncDetailRepo = syncDetailRepo;
-        this.jira = jira;
         this.radicate = radicate;
         this.serviceConfigs = serviceConfigs;
     }
-
+    
     @Transactional
     public void executeTask(Long taskId) {
         SyncTask task = taskRepo.findById(taskId).orElse(null);
@@ -71,7 +68,8 @@ public class SyncExecutionService {
                 d.setRadicateUid(r.getUid());
                 d.setPayload(r.getPayload());
                 d.setCreatedAt(Instant.now());
-                if ("SUCCESS".equals(d.getStatus())) ok++; else fail++;
+                if ("SUCCESS".equals(d.getStatus())) ok++;
+                else fail++;
                 syncDetailRepo.save(d);
             }
             rec.setTotalItems(results.size());
@@ -89,7 +87,7 @@ public class SyncExecutionService {
             taskRepo.save(task);
         }
     }
-
+    
     private List<FieldMappingDTO> parseMappings(String json) {
         try {
             if (json == null || json.trim().isEmpty()) return java.util.Collections.emptyList();
@@ -123,10 +121,11 @@ public class SyncExecutionService {
                 if (a != null) java.util.Collections.addAll(arr, a);
                 return arr;
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return java.util.Collections.emptyList();
     }
-
+    
     private DataSourceAdapter pickAdapter(ServiceConfig cfg) {
         ServiceType t = cfg != null ? cfg.getServiceType() : ServiceType.JIRA;
         if (t == ServiceType.CUSTOM) return new CustomScriptDataSourceAdapter();

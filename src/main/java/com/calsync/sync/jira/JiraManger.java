@@ -1,7 +1,7 @@
 package com.calsync.sync.jira;
 
+import com.calsync.domain.ServiceType;
 import com.calsync.domain.SyncTask;
-import com.calsync.service.ServiceConfigService;
 import com.calsync.service.SyncTaskService;
 import com.calsync.sync.Event;
 import com.calsync.sync.EventSource;
@@ -19,8 +19,6 @@ import org.springframework.stereotype.Component;
 public class JiraManger extends JiraClientService implements EventSource, ParamsSource<JiraParam> {
     @Autowired
     private SyncTaskService syncTaskService;
-    @Autowired
-    private ServiceConfigService serviceConfigService;
     
     private IssuesWrap queryIssues(SyncTask task) throws JiraException {
         String jql = task.getJqlExpression();
@@ -58,5 +56,10 @@ public class JiraManger extends JiraClientService implements EventSource, Params
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+    
+    @Override
+    public ServiceType getServiceType() {
+        return ServiceType.JIRA;
     }
 }

@@ -28,6 +28,7 @@ public class JiraClientService implements ClientService<JiraClientWrap> {
         }
     }
     
+    @Override
     public JiraClientWrap getClient(Long serviceId) {
         if (clientMap.containsKey(serviceId)) {
             return clientMap.get(serviceId);

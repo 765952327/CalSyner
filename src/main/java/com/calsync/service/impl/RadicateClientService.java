@@ -1,4 +1,4 @@
-package com.calsync.service;
+package com.calsync.service.impl;
 
 import com.calsync.sync.Event;
 import com.calsync.sync.EventPublisher;

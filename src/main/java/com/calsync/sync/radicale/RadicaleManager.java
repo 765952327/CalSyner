@@ -1,6 +1,7 @@
 package com.calsync.sync.radicale;
 
 import biweekly.ICalendar;
+import com.calsync.domain.ServiceType;
 import com.calsync.domain.SyncTask;
 import com.calsync.service.SyncTaskService;
 import com.calsync.sync.Event;
@@ -40,5 +41,10 @@ public class RadicaleManager implements EventSource, EventTarget, ParamsSource<R
     @Override
     public List<RadicaleParam> getParams(Long taskId) {
         return params;
+    }
+    
+    @Override
+    public ServiceType getServiceType() {
+        return ServiceType.RADICALE;
     }
 }

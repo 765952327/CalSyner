@@ -3,7 +3,7 @@ package com.calsync.web;
 import com.calsync.domain.ServiceType;
 import com.calsync.domain.SyncTask;
 import com.calsync.repository.SyncTaskRepository;
-import com.calsync.service.SyncExecutionService;
+import com.calsync.service.impl.SyncExecutionService;
 import org.springframework.http.ResponseEntity;
 import com.calsync.repository.ServiceConfigRepository;
 import com.calsync.domain.ServiceConfig;
@@ -57,7 +57,7 @@ public class SyncTaskController {
                     t.setTaskName(body.getTaskName());
                     t.setDescription(body.getDescription());
                     t.setJiraConfigId(body.getJiraConfigId());
-                    t.setRadicateConfigId(body.getRadicateConfigId());
+                    t.setRadicaleConfigId(body.getRadicaleConfigId());
                     t.setJqlExpression(body.getJqlExpression());
                     t.setCronExpression(body.getCronExpression());
                     t.setIsEnabled(body.getIsEnabled());

@@ -1,4 +1,4 @@
-package com.calsync.service;
+package com.calsync.service.impl;
 
 public class RadicateSyncResult {
     private String summary;

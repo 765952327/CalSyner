@@ -2,7 +2,7 @@ package com.calsync.config;
 
 import com.calsync.domain.SyncTask;
 import com.calsync.repository.SyncTaskRepository;
-import com.calsync.service.SyncExecutionService;
+import com.calsync.service.impl.SyncExecutionService;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

@@ -4,7 +4,7 @@ import com.calsync.domain.OperationLog;
 import com.calsync.domain.SyncTask;
 import com.calsync.repository.OperationLogRepository;
 import com.calsync.repository.SyncTaskRepository;
-import com.calsync.service.RadicateClientService;
+import com.calsync.service.impl.RadicateClientService;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
