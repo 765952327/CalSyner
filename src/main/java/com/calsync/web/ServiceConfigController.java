@@ -11,6 +11,7 @@ import java.util.Map;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import com.calsync.sync.radicale.RadicaleClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -75,13 +76,18 @@ public class ServiceConfigController {
     public ResponseEntity<ServiceConfig> test(@PathVariable Long id) {
         return repo.findById(id).map(cfg -> {
             boolean ok = false;
-            try {
-                OkHttpClient client = new OkHttpClient();
-                Request req = new Request.Builder().url(cfg.getBaseUrl()).get().build();
-                try (Response resp = client.newCall(req).execute()) {
-                    ok = resp.isSuccessful();
+            if (cfg.getServiceType() == com.calsync.domain.ServiceType.RADICALE) {
+                RadicaleClient client = new RadicaleClient(cfg.getBaseUrl(), cfg.getUsername(), cfg.getPassword());
+                ok = client.ping();
+            } else {
+                try {
+                    OkHttpClient client = new OkHttpClient();
+                    Request req = new Request.Builder().url(cfg.getBaseUrl()).get().build();
+                    try (Response resp = client.newCall(req).execute()) {
+                        ok = resp.isSuccessful();
+                    }
+                } catch (Exception ignored) {
                 }
-            } catch (Exception ignored) {
             }
             cfg.setConnectionStatus(ok ? "OK" : "FAILED");
             cfg.setLastTestTime(Instant.now());

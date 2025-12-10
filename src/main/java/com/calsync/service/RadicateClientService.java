@@ -1,50 +1,44 @@
 package com.calsync.service;
 
-import biweekly.Biweekly;
-import biweekly.ICalendar;
-import biweekly.component.VTodo;
-import biweekly.property.Status;
-import biweekly.property.Summary;
 import com.calsync.domain.OperationLog;
 import com.calsync.domain.ServiceConfig;
 import com.calsync.domain.ServiceType;
 import com.calsync.repository.OperationLogRepository;
 import com.calsync.repository.ServiceConfigRepository;
 import com.calsync.sync.Event;
+import com.calsync.sync.EventPublisher;
 import com.calsync.sync.caldav.BiweeklyFormatter;
 import com.calsync.sync.caldav.CalDavConfig;
-import com.calsync.sync.caldav.RadicalePublisher;
+import com.calsync.sync.radicale.RadicaleClient;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import okhttp3.Credentials;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
 import org.springframework.stereotype.Service;
 
 @Service
-public class RadicateClientService implements com.calsync.sync.EventPublisher {
+public class RadicateClientService implements EventPublisher {
     private final BiweeklyFormatter formatter = new BiweeklyFormatter();
-    private final RadicalePublisher publisher = new RadicalePublisher();
     private final OperationLogRepository logs;
     private final ServiceConfigRepository serviceConfigs;
     
     public void upsertEvents(List<Event> specs) {
+        RadicaleClient client = new RadicaleClient(CalDavConfig.RADICALE_URL, CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD);
         Set<String> desired = new HashSet<>();
         for (Event s : specs) desired.add(s.getSummary());
-        List<String> existing = publisher.listSummaries();
+        List<String> existing = client.listSummaries();
         for (String ex : existing) {
-            if (!desired.contains(ex)) publisher.deleteBySummary(ex);
+            if (!desired.contains(ex)) client.deleteBySummary(ex);
         }
         for (Event spec : specs) {
-            String uid = UUID.randomUUID().toString();
+            String uid = uidFromSummary(spec.getSummary());
             String ics = formatter.format(spec, uid);
-            publisher.replaceBySummary(ics, uid, spec.getSummary());
+            client.replaceBySummary(ics, uid, spec.getSummary());
             String todoIcs = formatter.formatTodo(spec, uid + "-todo");
-            publisher.replaceTodoBySummary(todoIcs, uid + "-todo", spec.getSummary());
+            client.replaceTodoBySummary(todoIcs, uid + "-todo", spec.getSummary());
         }
     }
     
@@ -67,18 +61,19 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
         List<RadicateSyncResult> out = new ArrayList<>();
         Set<String> desired = new HashSet<>();
         for (Event s : specs) desired.add(s.getSummary());
-        List<String> existing = publisher.listSummaries();
+        RadicaleClient client = new RadicaleClient(CalDavConfig.RADICALE_URL, CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD);
+        List<String> existing = client.listSummaries();
         for (String ex : existing) {
-            if (!desired.contains(ex)) publisher.deleteBySummary(ex);
+            if (!desired.contains(ex)) client.deleteBySummary(ex);
         }
         for (Event spec : specs) {
-            String uid = UUID.randomUUID().toString();
+            String uid = uidFromSummary(spec.getSummary());
             String ics = formatter.format(spec, uid);
-            String prevEventIcs = publisher.getEventIcsBySummary(spec.getSummary());
+            String prevEventIcs = client.getEventIcsBySummary(spec.getSummary());
             boolean existedEvent = prevEventIcs != null;
-            boolean changedEvent = !existedEvent || !publisher.normalize(prevEventIcs).equals(publisher.normalize(ics));
+            boolean changedEvent = !existedEvent || !client.normalize(prevEventIcs).equals(client.normalize(ics));
             if (changedEvent) {
-                int code = publisher.replaceBySummary(ics, uid, spec.getSummary());
+                int code = client.replaceBySummary(ics, uid, spec.getSummary());
                 RadicateSyncResult ev = new RadicateSyncResult();
                 ev.setSummary(spec.getSummary());
                 ev.setUid(uid);
@@ -102,11 +97,11 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
             
             String todoUid = uid + "-todo";
             String todoIcs = formatter.formatTodo(spec, todoUid);
-            String prevTodoIcs = publisher.getTodoIcsBySummary(spec.getSummary());
+            String prevTodoIcs = client.getTodoIcsBySummary(spec.getSummary());
             boolean existedTodo = prevTodoIcs != null;
-            boolean changedTodo = !existedTodo || !publisher.normalize(prevTodoIcs).equals(publisher.normalize(todoIcs));
+            boolean changedTodo = !existedTodo || !client.normalize(prevTodoIcs).equals(client.normalize(todoIcs));
             if (changedTodo) {
-                int todoCode = publisher.replaceTodoBySummary(todoIcs, todoUid, spec.getSummary());
+                int todoCode = client.replaceTodoBySummary(todoIcs, todoUid, spec.getSummary());
                 RadicateSyncResult td = new RadicateSyncResult();
                 td.setSummary(spec.getSummary());
                 td.setUid(todoUid);
@@ -139,18 +134,19 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
         List<RadicateSyncResult> out = new ArrayList<>();
         Set<String> desired = new HashSet<>();
         for (Event s : specs) desired.add(s.getSummary());
-        List<String> existing = publisher.listSummaries(base, user, pass);
+        RadicaleClient client = new RadicaleClient(base, user, pass);
+        List<String> existing = client.listSummaries();
         for (String ex : existing) {
-            if (!desired.contains(ex)) publisher.deleteBySummary(ex, base, user, pass);
+            if (!desired.contains(ex)) client.deleteBySummary(ex);
         }
         for (Event spec : specs) {
-            String uid = java.util.UUID.randomUUID().toString();
+            String uid = uidFromSummary(spec.getSummary());
             String ics = formatter.format(spec, uid);
-            String prevEventIcs = publisher.getEventIcsBySummary(spec.getSummary(), base, user, pass);
+            String prevEventIcs = client.getEventIcsBySummary(spec.getSummary());
             boolean existedEvent = prevEventIcs != null;
-            boolean changedEvent = !existedEvent || !publisher.normalize(prevEventIcs).equals(publisher.normalize(ics));
+            boolean changedEvent = !existedEvent || !client.normalize(prevEventIcs).equals(client.normalize(ics));
             if (changedEvent) {
-                int code = publisher.replaceBySummary(ics, uid, spec.getSummary(), base, user, pass);
+                int code = client.replaceBySummary(ics, uid, spec.getSummary());
                 RadicateSyncResult ev = new RadicateSyncResult();
                 ev.setSummary(spec.getSummary());
                 ev.setUid(uid);
@@ -174,11 +170,11 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
             
             String todoUid = uid + "-todo";
             String todoIcs = formatter.formatTodo(spec, todoUid);
-            String prevTodoIcs = publisher.getTodoIcsBySummary(spec.getSummary(), base, user, pass);
+            String prevTodoIcs = client.getTodoIcsBySummary(spec.getSummary());
             boolean existedTodo = prevTodoIcs != null;
-            boolean changedTodo = !existedTodo || !publisher.normalize(prevTodoIcs).equals(publisher.normalize(todoIcs));
+            boolean changedTodo = !existedTodo || !client.normalize(prevTodoIcs).equals(client.normalize(todoIcs));
             if (changedTodo) {
-                int todoCode = publisher.replaceTodoBySummary(todoIcs, todoUid, spec.getSummary(), base, user, pass);
+                int todoCode = client.replaceTodoBySummary(todoIcs, todoUid, spec.getSummary());
                 RadicateSyncResult td = new RadicateSyncResult();
                 td.setSummary(spec.getSummary());
                 td.setUid(todoUid);
@@ -205,31 +201,8 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
     
     
     public List<String> listCompletedTodoSummaries() {
-        List<String> urls = publisher.listCollectionIcsUrls();
-        OkHttpClient client = new OkHttpClient();
-        Set<String> completed = new HashSet<>();
-        for (String url : urls) {
-            Request get = new Request.Builder()
-                    .url(url)
-                    .header("Authorization", Credentials.basic(CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD))
-                    .get()
-                    .build();
-            try (Response resp = client.newCall(get).execute()) {
-                if (!resp.isSuccessful()) continue;
-                String ics = resp.body().string();
-                List<ICalendar> cals = Biweekly.parse(ics).all();
-                for (ICalendar cal : cals) {
-                    for (VTodo td : cal.getTodos()) {
-                        Status st = td.getStatus();
-                        Summary s = td.getSummary();
-                        String v = s != null ? s.getValue() : null;
-                        if (st != null && "COMPLETED".equalsIgnoreCase(st.getValue()) && v != null) completed.add(v);
-                    }
-                }
-            } catch (Exception ignored) {
-            }
-        }
-        return new ArrayList<>(completed);
+        RadicaleClient client = new RadicaleClient(CalDavConfig.RADICALE_URL, CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD);
+        return client.listCompletedTodoSummaries();
     }
     
     public List<String> listCompletedTodoSummaries(Long radicateConfigId) {
@@ -237,35 +210,13 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
         String base = cfg != null ? cfg.getBaseUrl() : CalDavConfig.RADICALE_URL;
         String user = cfg != null ? cfg.getUsername() : CalDavConfig.RADICALE_USERNAME;
         String pass = cfg != null ? cfg.getPassword() : CalDavConfig.RADICALE_PASSWORD;
-        List<String> urls = publisher.listCollectionIcsUrls(base, user, pass);
-        OkHttpClient client = new OkHttpClient();
-        Set<String> completed = new HashSet<>();
-        for (String url : urls) {
-            Request get = new Request.Builder()
-                    .url(url)
-                    .header("Authorization", Credentials.basic(user, pass))
-                    .get()
-                    .build();
-            try (Response resp = client.newCall(get).execute()) {
-                if (!resp.isSuccessful()) continue;
-                String ics = resp.body().string();
-                List<ICalendar> cals = Biweekly.parse(ics).all();
-                for (ICalendar cal : cals) {
-                    for (VTodo td : cal.getTodos()) {
-                        Status st = td.getStatus();
-                        Summary s = td.getSummary();
-                        String v = s != null ? s.getValue() : null;
-                        if (st != null && "COMPLETED".equalsIgnoreCase(st.getValue()) && v != null) completed.add(v);
-                    }
-                }
-            } catch (Exception ignored) {
-            }
-        }
-        return new ArrayList<>(completed);
+        RadicaleClient client = new RadicaleClient(base, user, pass);
+        return client.listCompletedTodoSummaries();
     }
     
     public boolean deleteEventsBySummary(String summary) {
-        int code = publisher.deleteEventsBySummary(summary);
+        RadicaleClient client = new RadicaleClient(CalDavConfig.RADICALE_URL, CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD);
+        int code = client.deleteEventsBySummary(summary);
         OperationLog log = new OperationLog();
         log.setOpType("DELETE_EVENT");
         log.setSummary(summary);
@@ -282,7 +233,8 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
         String base = cfg != null ? cfg.getBaseUrl() : CalDavConfig.RADICALE_URL;
         String user = cfg != null ? cfg.getUsername() : CalDavConfig.RADICALE_USERNAME;
         String pass = cfg != null ? cfg.getPassword() : CalDavConfig.RADICALE_PASSWORD;
-        int code = publisher.deleteEventsBySummary(summary, base, user, pass);
+        RadicaleClient client = new RadicaleClient(base, user, pass);
+        int code = client.deleteEventsBySummary(summary);
         OperationLog log = new OperationLog();
         log.setOpType("DELETE_EVENT");
         log.setSummary(summary);
@@ -295,7 +247,8 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
     }
     
     public boolean deleteEventsBySummaryForCompletedTodo(String summary) {
-        int code = publisher.deleteEventsBySummary(summary);
+        RadicaleClient client = new RadicaleClient(CalDavConfig.RADICALE_URL, CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD);
+        int code = client.deleteEventsBySummary(summary);
         OperationLog log = new OperationLog();
         log.setOpType("DELETE_EVENT");
         log.setSummary(summary);
@@ -312,7 +265,8 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
         String base = cfg != null ? cfg.getBaseUrl() : CalDavConfig.RADICALE_URL;
         String user = cfg != null ? cfg.getUsername() : CalDavConfig.RADICALE_USERNAME;
         String pass = cfg != null ? cfg.getPassword() : CalDavConfig.RADICALE_PASSWORD;
-        int code = publisher.deleteEventsBySummary(summary, base, user, pass);
+        RadicaleClient client = new RadicaleClient(base, user, pass);
+        int code = client.deleteEventsBySummary(summary);
         OperationLog log = new OperationLog();
         log.setOpType("DELETE_EVENT");
         log.setSummary(summary);
@@ -325,7 +279,8 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
     }
     
     public boolean eventSummaryExists(String summary) {
-        List<String> evs = publisher.listSummaries();
+        RadicaleClient client = new RadicaleClient(CalDavConfig.RADICALE_URL, CalDavConfig.RADICALE_USERNAME, CalDavConfig.RADICALE_PASSWORD);
+        List<String> evs = client.listSummaries();
         return evs.contains(summary);
     }
     
@@ -334,9 +289,24 @@ public class RadicateClientService implements com.calsync.sync.EventPublisher {
         String base = cfg != null ? cfg.getBaseUrl() : CalDavConfig.RADICALE_URL;
         String user = cfg != null ? cfg.getUsername() : CalDavConfig.RADICALE_USERNAME;
         String pass = cfg != null ? cfg.getPassword() : CalDavConfig.RADICALE_PASSWORD;
-        List<String> evs = publisher.listSummaries(base, user, pass);
+        RadicaleClient client = new RadicaleClient(base, user, pass);
+        List<String> evs = client.listSummaries();
         return evs.contains(summary);
     }
     
     
+    private String uidFromSummary(String summary) {
+        String src = summary == null ? "" : summary.trim().toLowerCase();
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-1");
+            byte[] dig = md.digest(src.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder("calsync-");
+            for (byte b : dig) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return UUID.nameUUIDFromBytes(src.getBytes(StandardCharsets.UTF_8)).toString();
+        }
+    }
 }

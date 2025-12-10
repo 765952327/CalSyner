@@ -29,10 +29,7 @@ public class RadicaleManager implements EventSource, EventTarget, ParamsSource<R
     public List<Event> fetch(Long taskId) {
         SyncTask task = syncTaskService.getTask(taskId);
         Long radicaleId = task.getRadicaleConfigId();
-        ICalendar calendar = new ICalendar();
-        calendar.addEvent();
-        
-        return List.of();
+        return new ArrayList<>();
     }
     
     @Override
