@@ -58,7 +58,7 @@ public class SyncExecutionService {
             DataSourceAdapter adapter = pickAdapter(srcCfg);
             List<Event> specs = adapter.fetch(srcCfg, task, mappings);
             if (specs == null) specs = new ArrayList<>();
-            List<RadicateSyncResult> results = radicate.upsertAndCollect(specs, rec.getId(), task.getId(), task.getRadicateConfigId());
+            List<RadicateSyncResult> results = radicate.upsertAndCollect(specs, rec.getId(), task.getId(), task.getRadicaleConfigId());
             int ok = 0, fail = 0;
             for (RadicateSyncResult r : results) {
                 com.calsync.domain.SyncDetail d = new com.calsync.domain.SyncDetail();
