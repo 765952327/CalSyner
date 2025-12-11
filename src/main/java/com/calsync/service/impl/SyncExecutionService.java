@@ -41,51 +41,51 @@ public class SyncExecutionService {
     
     @Transactional
     public void executeTask(Long taskId) {
-        SyncTask task = taskRepo.findById(taskId).orElse(null);
-        if (task == null) return;
-        SyncRecord rec = new SyncRecord();
-        rec.setTaskId(task.getId());
-        rec.setStartTime(Instant.now());
-        rec.setStatus("RUNNING");
-        rec.setCreatedAt(Instant.now());
-        recordRepo.save(rec);
-        try {
-            List<FieldMappingDTO> mappings = parseMappings(task.getDescription());
-            ServiceConfig srcCfg = serviceConfigs.findById(task.getJiraConfigId()).orElse(null);
-            DataSourceAdapter adapter = pickAdapter(srcCfg);
-            List<Event> specs = adapter.fetch(srcCfg, task, mappings);
-            if (specs == null) specs = new ArrayList<>();
-            List<RadicateSyncResult> results = radicate.upsertAndCollect(specs, rec.getId(), task.getId(), task.getRadicaleConfigId());
-            int ok = 0, fail = 0;
-            for (RadicateSyncResult r : results) {
-                com.calsync.domain.SyncDetail d = new com.calsync.domain.SyncDetail();
-                d.setRecordId(rec.getId());
-                d.setItemId(r.getSummary());
-                d.setItemSummary(r.getSummary());
-                d.setAction("UPSERT_" + r.getTargetType());
-                d.setStatus(r.getCode() >= 200 && r.getCode() < 300 ? "SUCCESS" : "FAILED");
-                d.setTargetType(r.getTargetType());
-                d.setRadicateUid(r.getUid());
-                d.setPayload(r.getPayload());
-                d.setCreatedAt(Instant.now());
-                if ("SUCCESS".equals(d.getStatus())) ok++;
-                else fail++;
-                syncDetailRepo.save(d);
-            }
-            rec.setTotalItems(results.size());
-            rec.setProcessedItems(ok);
-            rec.setFailedItems(fail);
-            rec.setStatus(fail == 0 ? "SUCCESS" : (ok > 0 ? "PARTIAL" : "FAILED"));
-        } catch (Exception e) {
-            rec.setStatus("FAILED");
-            rec.setErrorMessage(e.getMessage());
-        } finally {
-            rec.setEndTime(Instant.now());
-            recordRepo.save(rec);
-            task.setLastSyncTime(Instant.now());
-            task.setSyncStatus(rec.getStatus());
-            taskRepo.save(task);
-        }
+//        SyncTask task = taskRepo.findById(taskId).orElse(null);
+//        if (task == null) return;
+//        SyncRecord rec = new SyncRecord();
+//        rec.setTaskId(task.getId());
+//        rec.setStartTime(Instant.now());
+//        rec.setStatus("RUNNING");
+//        rec.setCreatedAt(Instant.now());
+//        recordRepo.save(rec);
+//        try {
+//            List<FieldMappingDTO> mappings = parseMappings(task.getDescription());
+//            ServiceConfig srcCfg = serviceConfigs.findById(task.getJiraConfigId()).orElse(null);
+//            DataSourceAdapter adapter = pickAdapter(srcCfg);
+//            List<Event> specs = adapter.fetch(srcCfg, task, mappings);
+//            if (specs == null) specs = new ArrayList<>();
+//            List<RadicateSyncResult> results = radicate.upsertAndCollect(specs, rec.getId(), task.getId(), task.getRadicaleConfigId());
+//            int ok = 0, fail = 0;
+//            for (RadicateSyncResult r : results) {
+//                com.calsync.domain.SyncDetail d = new com.calsync.domain.SyncDetail();
+//                d.setRecordId(rec.getId());
+//                d.setItemId(r.getSummary());
+//                d.setItemSummary(r.getSummary());
+//                d.setAction("UPSERT_" + r.getTargetType());
+//                d.setStatus(r.getCode() >= 200 && r.getCode() < 300 ? "SUCCESS" : "FAILED");
+//                d.setTargetType(r.getTargetType());
+//                d.setRadicateUid(r.getUid());
+//                d.setPayload(r.getPayload());
+//                d.setCreatedAt(Instant.now());
+//                if ("SUCCESS".equals(d.getStatus())) ok++;
+//                else fail++;
+//                syncDetailRepo.save(d);
+//            }
+//            rec.setTotalItems(results.size());
+//            rec.setProcessedItems(ok);
+//            rec.setFailedItems(fail);
+//            rec.setStatus(fail == 0 ? "SUCCESS" : (ok > 0 ? "PARTIAL" : "FAILED"));
+//        } catch (Exception e) {
+//            rec.setStatus("FAILED");
+//            rec.setErrorMessage(e.getMessage());
+//        } finally {
+//            rec.setEndTime(Instant.now());
+//            recordRepo.save(rec);
+//            task.setLastSyncTime(Instant.now());
+//            task.setSyncStatus(rec.getStatus());
+//            taskRepo.save(task);
+//        }
     }
     
     private List<FieldMappingDTO> parseMappings(String json) {

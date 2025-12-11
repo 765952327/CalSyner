@@ -94,25 +94,26 @@ public class OperationLogController {
     @PostMapping("/deleteBySummary")
     public ResponseEntity<OperationLog> deleteBySummary(@RequestParam String summary,
                                                         @RequestParam(required = false) Long radicateConfigId) {
-        boolean exists = (radicateConfigId == null)
-                ? radicate.eventSummaryExists(summary)
-                : radicate.eventSummaryExists(summary, radicateConfigId);
-        boolean ok = exists && ((radicateConfigId == null)
-                ? radicate.deleteEventsBySummary(summary)
-                : radicate.deleteEventsBySummary(summary, radicateConfigId));
-        OperationLog log = repo.findAll().stream()
-                .filter(x -> "DELETE_EVENT".equals(x.getOpType()) && summary.equals(x.getSummary()))
-                .reduce((first, second) -> second)
-                .orElseGet(() -> {
-                    OperationLog l = new OperationLog();
-                    l.setOpType("MANUAL_DELETE_EVENT");
-                    l.setSummary(summary);
-                    l.setTargetType("EVENT");
-                    l.setStatus(ok ? "SUCCESS" : (exists ? "FAILED" : "SKIP"));
-                    l.setMessage(ok ? "Deleted" : (exists ? "Delete failed" : "EventMapper not found"));
-                    l.setCreatedAt(Instant.now());
-                    return repo.save(l);
-                });
-        return ResponseEntity.ok(log);
+//        boolean exists = (radicateConfigId == null)
+//                ? radicate.eventSummaryExists(summary)
+//                : radicate.eventSummaryExists(summary, radicateConfigId);
+//        boolean ok = exists && ((radicateConfigId == null)
+//                ? radicate.deleteEventsBySummary(summary)
+//                : radicate.deleteEventsBySummary(summary, radicateConfigId));
+//        OperationLog log = repo.findAll().stream()
+//                .filter(x -> "DELETE_EVENT".equals(x.getOpType()) && summary.equals(x.getSummary()))
+//                .reduce((first, second) -> second)
+//                .orElseGet(() -> {
+//                    OperationLog l = new OperationLog();
+//                    l.setOpType("MANUAL_DELETE_EVENT");
+//                    l.setSummary(summary);
+//                    l.setTargetType("EVENT");
+//                    l.setStatus(ok ? "SUCCESS" : (exists ? "FAILED" : "SKIP"));
+//                    l.setMessage(ok ? "Deleted" : (exists ? "Delete failed" : "EventMapper not found"));
+//                    l.setCreatedAt(Instant.now());
+//                    return repo.save(l);
+//                });
+//        return ResponseEntity.ok(log);
+        return ResponseEntity.ok(new OperationLog());
     }
 }
