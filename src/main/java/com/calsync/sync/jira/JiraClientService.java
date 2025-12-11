@@ -8,9 +8,8 @@ import java.util.Map;
 import net.rcarz.jiraclient.BasicCredentials;
 import net.rcarz.jiraclient.JiraClient;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
-@Component
+
 public class JiraClientService implements ClientService<JiraClientWrap> {
     private static final Map<Long, JiraClientWrap> clientMap = new HashMap<>();
     @Autowired

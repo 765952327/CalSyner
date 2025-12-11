@@ -1,5 +1,8 @@
 package com.calsync.sync.radicale;
 
+import biweekly.ICalendar;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class RadicaleClientTest {
@@ -8,6 +11,9 @@ class RadicaleClientTest {
     public static void main(String[] args) {
         System.out.println(radicaleClient.ping());
         System.out.println(radicaleClient.queryAll());
-        
+        List<ICalendar> iCalendars = radicaleClient.queryAll();
+        for (ICalendar iCalendar : iCalendars) {
+            System.out.println(iCalendar);
+        }
     }
 }

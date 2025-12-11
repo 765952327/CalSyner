@@ -8,7 +8,7 @@ import java.util.NoSuchElementException;
 import java.util.function.Consumer;
 import net.rcarz.jiraclient.Issue;
 
-public class IssuesWrap implements EventMapper, Iterator<Issue> {
+public class IssuesWrap implements Iterator<Issue> {
     private final List<Issue> issues;
     private int cursor = 0;
     private int lastReturned = -1;
@@ -16,12 +16,6 @@ public class IssuesWrap implements EventMapper, Iterator<Issue> {
     
     public IssuesWrap(List<Issue> issues) {
         this.issues = issues;
-    }
-    
-    @Override
-    public List<Event> toEvents() {
-        
-        return null;
     }
     
     @Override

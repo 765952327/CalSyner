@@ -5,6 +5,7 @@ import com.calsync.domain.ServiceType;
 import com.calsync.domain.SyncTask;
 import com.calsync.service.SyncTaskService;
 import com.calsync.sync.Event;
+import com.calsync.sync.EventConverter;
 import com.calsync.sync.EventSource;
 import com.calsync.sync.EventTarget;
 import com.calsync.sync.ParamsSource;
@@ -14,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class RadicaleManager implements EventSource, EventTarget, ParamsSource<RadicaleParam> {
+public class RadicaleManager extends RadicaleClientService implements EventSource, EventTarget, ParamsSource<RadicaleParam> {
     private static final List<RadicaleParam> params = new ArrayList<>();
     
     static {
@@ -26,17 +27,32 @@ public class RadicaleManager implements EventSource, EventTarget, ParamsSource<R
     }
     @Autowired
     private SyncTaskService syncTaskService;
+    @Autowired
+    private EventConverter<ICalendar> calendarConverter;
     @Override
     public List<Event> fetch(Long taskId) {
         SyncTask task = syncTaskService.getTask(taskId);
+        if (task == null) {
+            return new ArrayList<>();
+        }
         Long radicaleId = task.getRadicaleConfigId();
-        return new ArrayList<>();
+        RadicaleClient client = getClient(radicaleId);
+        List<ICalendar> iCalendars = client.queryAll();
+        return calendarConverter.convert(iCalendars);
     }
+    
     
     @Override
-    public void push(List<Event> events) {
-    
+    public void push(Long taskId, List<Event> events) {
+        SyncTask task = syncTaskService.getTask(taskId);
+        if (task == null) {
+            return;
+        }
+        List<ICalendar> iCalendars = calendarConverter.reverseConvert(events);
+        RadicaleClient client = getClient(task.getRadicaleConfigId());
+        
     }
+   
     
     @Override
     public List<RadicaleParam> getParams(Long taskId) {
