@@ -25,11 +25,4 @@ public class Event {
     private String organizer;       // 组织者
     private Instant createdAt;      // 源创建时间
     private Instant updatedAt;      // 源更新时间
-    
-    
-    public Event(String summary, Instant start, Instant end) {
-        this.summary = summary;
-        this.start = start;
-        this.end = end;
-    }
 }
