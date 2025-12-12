@@ -16,6 +16,7 @@ import biweekly.property.Summary;
 import biweekly.property.Uid;
 import biweekly.property.Url;
 import cn.hutool.core.util.StrUtil;
+import com.calsync.domain.ParamRelation;
 import com.calsync.sync.Event;
 import com.calsync.sync.EventConverter;
 import com.calsync.sync.EventType;
@@ -42,7 +43,7 @@ public class RadicaleEventConverter implements EventConverter<ICalendar> {
      * @return Event 列表；入参为空或无内容时返回空列表
      */
     @Override
-    public List<Event> convert(List<ICalendar> datas) {
+    public List<Event> convert(List<ICalendar> datas, Long taskId) {
         if (datas == null || datas.isEmpty()) return Collections.emptyList();
         List<Event> events = new ArrayList<>();
         for (ICalendar cal : datas) {

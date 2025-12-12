@@ -38,7 +38,7 @@ public class RadicaleManager extends RadicaleClientService implements EventSourc
         Long radicaleId = task.getRadicaleConfigId();
         RadicaleClient client = getClient(radicaleId);
         List<ICalendar> iCalendars = client.queryAll();
-        return calendarConverter.convert(iCalendars);
+        return calendarConverter.convert(iCalendars, null);
     }
     
     
