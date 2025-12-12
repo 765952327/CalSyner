@@ -4,207 +4,183 @@ import com.calsync.domain.ParamRelation;
 import com.calsync.repository.ParamRelationRepository;
 import com.calsync.service.ParamRelationService;
 import com.calsync.sync.Event;
-import com.calsync.sync.EventType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.springframework.beans.PropertyAccessor;
+import org.springframework.beans.PropertyAccessorFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * 参数关系转换服务实现类。
+ * 参数映射服务实现：根据任务的字段映射配置，将源对象属性按模板转换并填充到统一事件模型。
  * <p>
- * 职责：根据任务的参数关系配置，将任意源对象（Map 或 POJO）转换为统一的事件模型对象。
- * 配置示例：[{"source":"{key}-{summary}","target":"summary"}]，其中：
- * - source 为模板字符串，花括号中的标识代表源对象字段名；
- * - target 为 Event 的目标字段名，将模板解析出的值赋到该字段。
+ * 功能说明：
+ * - 从任务对应的 {@link ParamRelation} 中读取 JSON 配置（数组，每项包含 `source` 与 `target`）；
+ * - `source` 为模板字符串，使用花括号占位（如 `{key}-{summary}`），占位符对应源对象的属性名；
+ * - `target` 为目标事件的字段名（如 `summary`），将模板解析结果设置到该字段；
+ * - 支持基础类型转换：当目标字段类型为 {@link Instant}、{@link Integer}、{@link Long} 时尝试格式化/解析。
  */
 @Component
 public class ParamRelationServiceImpl implements ParamRelationService {
     @Autowired
     private ParamRelationRepository repo;
-
+    
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^}]+)\\}");
+    
     /**
-     * 将源对象依据任务的字段关系配置转换为事件对象。
-     *
-     * @param taskId 任务 ID，用于加载对应的字段关系配置
-     * @param source 源对象，支持 Map 或普通 POJO
-     * @param <T> 返回类型（实际返回 Event，会进行泛型转换）
-     * @param <S> 源对象类型
-     * @return 事件对象；若配置缺失或解析失败，返回字段为空的 Event
+     * 将任意源对象依照任务的字段映射规则转换为统一的 {@link Event}。
+     * @param taskId 任务 ID，用于查询映射配置
+     * @param source 源对象，模板占位符从该对象的属性中取值
+     * @param <S>    源对象类型
+     * @return 填充后的事件对象；当不存在配置或源为空时返回空事件对象
      */
     @Override
-    @SuppressWarnings("unchecked")
-    public <T, S> T toEvent(Long taskId, S source) {
+    public <S> Event toEvent(Long taskId, S source) {
         Event target = new Event();
-        if (taskId == null) {
-            return (T) target;
+        if (taskId == null || source == null) {
+            return target;
         }
+        
         ParamRelation relation = repo.getByTaskId(taskId);
-        if (relation == null) {
-            return (T) target;
+        if (relation == null || relation.getRelation() == null || relation.getRelation().trim().isEmpty()) {
+            return target;
         }
+        
         String relationConfig = relation.getRelation();
-        if (relationConfig == null || relationConfig.trim().isEmpty()) {
-            return (T) target;
+        List<Map<String, String>> mappings = parseMappings(relationConfig);
+        if (mappings.isEmpty()) {
+            return target;
         }
-
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            List<MapRule> rules = mapper.readValue(relationConfig, new TypeReference<List<MapRule>>() {});
-            if (rules == null) {
-                rules = new ArrayList<>();
+        
+        PropertyAccessor srcAccessor = PropertyAccessorFactory.forBeanPropertyAccess(source);
+        PropertyAccessor dstAccessor = PropertyAccessorFactory.forBeanPropertyAccess(target);
+        
+        for (Map<String, String> m : mappings) {
+            String srcTpl = m.getOrDefault("source", "");
+            String tgtField = normalizeField(m.getOrDefault("target", ""));
+            if (tgtField.isEmpty()) continue;
+            
+            String resolved = resolveTemplate(srcTpl, srcAccessor);
+            Object value = convertForField(dstAccessor, tgtField, resolved);
+            try {
+                dstAccessor.setPropertyValue(tgtField, value);
+            } catch (Exception ignored) {
             }
-            for (MapRule r : rules) {
-                if (r == null) continue;
-                String tpl = r.getSource();
-                String field = r.getTarget();
-                if (field == null || field.trim().isEmpty()) continue;
-                String value = applyTemplate(tpl, source);
-                assign(target, field, value);
-            }
-        } catch (Exception ignored) {
         }
-        return (T) target;
+        
+        return target;
     }
-
+    
     /**
-     * 解析模板字符串，将形如 {field} 的占位符替换为源对象中的对应字段值。
-     *
-     * @param template 模板字符串
-     * @param source   源对象
-     * @param <S>      源对象类型
-     * @return 替换完成后的字符串结果；若字段不存在则替换为空串
+     * 解析 JSON 映射配置为列表。
+     * @param json 映射配置 JSON，形如：[{"source":"{key}-{summary}","target":"summary"}]
+     * @return 映射项列表
      */
-    private <S> String applyTemplate(String template, S source) {
-        if (template == null) return null;
-        Pattern p = Pattern.compile("\\{([^}]+)\\}");
-        Matcher m = p.matcher(template);
+    private List<Map<String, String>> parseMappings(String json) {
+        try {
+            List<Map<String, String>> list = MAPPER.readValue(json, new TypeReference<List<Map<String, String>>>() {
+            });
+            return list != null ? list : new ArrayList<>();
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+    
+    /**
+     * 依据占位模板从源对象读取属性并替换。
+     * @param template 占位模板，例如："{key}-{summary}"
+     * @param accessor 源对象属性访问器
+     * @return 解析后的字符串；占位不存在或为 null 时替换为空串
+     */
+    private String resolveTemplate(String template, PropertyAccessor accessor) {
+        if (template == null || template.isEmpty()) return "";
+        Matcher m = PLACEHOLDER.matcher(template);
         StringBuffer sb = new StringBuffer();
         while (m.find()) {
-            String key = m.group(1);
-            Object val = readField(source, key);
-            String rep = val != null ? String.valueOf(val) : "";
+            String prop = m.group(1).trim();
+            Object val;
+            try {
+                val = accessor.getPropertyValue(prop);
+            } catch (Exception e) {
+                val = null;
+            }
+            String rep = val == null ? "" : String.valueOf(val);
             m.appendReplacement(sb, Matcher.quoteReplacement(rep));
         }
         m.appendTail(sb);
         return sb.toString();
     }
-
+    
     /**
-     * 读取源对象中的指定字段值，支持 Map、Getter 方法及字段反射。
-     *
-     * @param src  源对象
-     * @param name 字段名
-     * @return 字段值；不存在或异常时返回 null
+     * 针对目标字段类型做必要的值转换。
+     * @param dstAccessor 目标对象属性访问器
+     * @param field       目标字段名
+     * @param text        原始字符串值
+     * @return 转换后的值对象
      */
-    private Object readField(Object src, String name) {
-        if (src == null || name == null) return null;
+    private Object convertForField(PropertyAccessor dstAccessor, String field, String text) {
+        Class<?> type;
         try {
-            if (src instanceof Map) {
-                return ((Map<?, ?>) src).get(name);
+            type = dstAccessor.getPropertyType(field);
+        } catch (Exception e) {
+            type = String.class;
+        }
+        if (type == null) type = String.class;
+        
+        if (Instant.class.isAssignableFrom(type)) {
+            return parseInstant(text);
+        } else if (Integer.class.isAssignableFrom(type) || int.class.isAssignableFrom(type)) {
+            try {
+                return Integer.parseInt(text);
+            } catch (Exception ignored) {
+                return null;
             }
-            String getter = "get" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
-            Method m = null;
-            try { m = src.getClass().getMethod(getter); } catch (NoSuchMethodException ignored) {}
-            if (m != null) return m.invoke(src);
-            Field f = null;
-            try { f = src.getClass().getDeclaredField(name); } catch (NoSuchFieldException ignored) {}
-            if (f != null) { f.setAccessible(true); return f.get(src); }
+        } else if (Long.class.isAssignableFrom(type) || long.class.isAssignableFrom(type)) {
+            try {
+                return Long.parseLong(text);
+            } catch (Exception ignored) {
+                return null;
+            }
+        }
+        return text;
+    }
+    
+    /**
+     * 将字符串解析为 {@link Instant}，支持 ISO-8601 与毫秒时间戳。
+     * @param s 字符串值
+     * @return 解析成功的 {@link Instant}，失败返回 {@code null}
+     */
+    private Instant parseInstant(String s) {
+        if (s == null || s.trim().isEmpty()) return null;
+        try {
+            return Instant.parse(s.trim());
+        } catch (Exception ignored) {
+        }
+        try {
+            return Instant.ofEpochMilli(Long.parseLong(s.trim()));
         } catch (Exception ignored) {
         }
         return null;
     }
-
+    
     /**
-     * 将字符串值赋到 Event 指定字段，支持字符串/时间/数字与枚举类型。
-     *
-     * @param e     事件对象
-     * @param field 目标字段名（不区分大小写）
-     * @param value 要赋予的字符串值
+     * 规范化字段名：去除包裹占位的花括号。
+     * @param raw 原始字段名（可能形如 "{summary}")
+     * @return 去除花括号后的字段名
      */
-    private void assign(Event e, String field, String value) {
-        if (e == null || field == null) return;
-        switch (field.toLowerCase()) {
-            case "uid":
-                e.setUid(value);
-                break;
-            case "summary":
-                e.setSummary(value);
-                break;
-            case "description":
-                e.setDescription(value);
-                break;
-            case "location":
-                e.setLocation(value);
-                break;
-            case "url":
-                e.setUrl(value);
-                break;
-            case "organizer":
-                e.setOrganizer(value);
-                break;
-            case "priority":
-                try { e.setPriority(value != null ? Integer.valueOf(value) : null); } catch (Exception ignored) {}
-                break;
-            case "start":
-                e.setStart(parseInstant(value));
-                break;
-            case "end":
-                e.setEnd(parseInstant(value));
-                break;
-            case "createdat":
-            case "created_at":
-                e.setCreatedAt(parseInstant(value));
-                break;
-            case "updatedat":
-            case "updated_at":
-                e.setUpdatedAt(parseInstant(value));
-                break;
-            case "eventtype":
-                if (value != null) {
-                    if ("todo".equalsIgnoreCase(value)) e.setEventType(EventType.TODO);
-                    else e.setEventType(EventType.EVENT);
-                }
-                break;
-            case "key":
-                e.setKey(value);
-                break;
-            default:
-                // 未知字段名忽略
+    private String normalizeField(String raw) {
+        if (raw == null) return "";
+        String s = raw.trim();
+        if (s.startsWith("{") && s.endsWith("}")) {
+            return s.substring(1, s.length() - 1).trim();
         }
-    }
-
-    /**
-     * 解析时间字符串为 Instant，支持 ISO-8601 与毫秒时间戳。
-     *
-     * @param s 时间字符串
-     * @return 解析得到的 Instant；失败返回 null
-     */
-    private Instant parseInstant(String s) {
-        if (s == null || s.trim().isEmpty()) return null;
-        try { return Instant.parse(s); } catch (Exception ignored) {}
-        try { return Instant.ofEpochMilli(Long.parseLong(s.trim())); } catch (Exception ignored) {}
-        return null;
-    }
-
-    /**
-     * 字段关系规则模型。
-     * 包含模板来源（source）与目标字段（target）。
-     */
-    static class MapRule {
-        private String source;
-        private String target;
-        public String getSource() { return source; }
-        public void setSource(String source) { this.source = source; }
-        public String getTarget() { return target; }
-        public void setTarget(String target) { this.target = target; }
+        return s;
     }
 }
